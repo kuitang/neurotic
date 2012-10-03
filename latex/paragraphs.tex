@@ -1,0 +1,17 @@
+\documentclass{article}
+
+\begin{document}
+\title{Weekly Paragraphs}
+\author{Kui Tang}
+\date{\today}
+\maketitle
+\section*{October 3, 2012}
+To appear in: Related Work
+
+All known connectomes reply on manual labels. White et al. published the first connectome of \emph{C. elegans} in 1986, marking axons, dendrites, and cell bodies in each frame and tracing the labels through frames \cite{White12111986}. More recent work uses computer assistance but fundamentally rely on a skilled human's identification of neural bodies \cite{Jarrell2012,Bock2011Roberts2011}.
+
+Koshevoy et al. \cite{Koshevoy2006} use a variant of SIFT \cite{Lowe2004} to register a stack of images into a 3D volume. According to Koshevoy, images between images exhibit warping due to the physical slicing, physical structural changes, and a distinct rotation and displacement on each frame. From the displacements of individual keypoints, a global transformation vector is calculated, allowing slices to be properly aligned. However, the SIFT features do not capture neural processes well, and thus is unsuited for identifying neurons across images.
+
+\bibliographystyle{plain}
+\bibliography{refs.bib}
+\end{document}
