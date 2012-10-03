@@ -1,7 +1,19 @@
+# Data
 data/*
+
+# MATLAB
 *~
+
+# VIM
+*.sw*
+
+# Latex
+latex/*.pdf
 *log
 *aux
 *out
 *bbl
 *blg
+*nav
+*snm
+*toc
