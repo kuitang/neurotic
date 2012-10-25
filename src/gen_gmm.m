@@ -1,12 +1,12 @@
-function [ X, pi, gmm ] = gen_gmm( mu, lam, N )
-    % [ X, pi, gmm ] = gen_gmm( mu, lam, N )
+function [ X, pi_, gmm ] = gen_gmm( mu, lam, N)
+    % [ X, pi_, gmm ] = gen_gmm( mu, lam, N )
     [K, D] = size(mu);
 
     gmm = struct('z', zeros(N, 1), 'K', K, 'mu', mu, 'lam', lam);
-    X = zeros(N, 2);
-    pi = rand(K, 1);
-    pi = pi / sum(pi);
-    pi_cdf = cumsum(pi);
+    X = zeros(N, D);
+    pi_ = rand(K, D);
+    pi_ = pi_ / sum(pi_);
+    pi_cdf = cumsum(pi_);
     
     for n = 1:N
         % Unnormalized inverse cdf sampling
