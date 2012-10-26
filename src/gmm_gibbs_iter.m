@@ -1,51 +1,60 @@
 function [ gmm ] = gmm_gibbs_iter( gmm, X )
-    % Diagonal covariance collapsed Gibbs sampling    
+    % Full covariance collapsed Gibbs sampling    
     [N D] = size(X);
     
     % Sanity checks    
     assert(sum(gmm.n) == N);        
     
-    %% MU
-    % Murphy (29)
-    n_lam = bsxfun(@times, gmm.n, gmm.lam);
-    mu_prec = gmm.mu_prec + n_lam;    
-    w = bsxfun(@times, gmm.n, gmm.lam ./ mu_prec);
-    assert(all(size(w) == [gmm.K, D]));
-    
-    MX = cond_mean(X, gmm.z);
-    % Murphy (30)
-    mu_mean = bsxfun(@times, w, MX) + bsxfun(@times, 1 - w, gmm.mu_mean);
-    assert(all(size(mu_mean) == [gmm.K, D]));
-    
-    gmm.mu = normrnd(mu_mean, 1 ./ sqrt(mu_prec));    
-    assert(all(size(gmm.mu) == [gmm.K, D]));
-    assert(all(all(~isnan(gmm.mu))));
+    % This Normal-Wishart thing is annoying; let's just do the normal and
+    % the Wishart part separately.
     
     %% LAMBDA
-    % Murphy (117)
-    lam_shape = bsxfun(@plus, gmm.lam_shape, gmm.n/2); % Remember to adjust per-class counts
-    lam_scale = gmm.lam_scale;
+    [MK, SK] = cond_moments(X, gmm.z);
+    % Murphy (224)    
+    for k = 1:gmm.K
+        SK(:,:,k) = gmm.n(k) * SK(:,:,k);
+    end
+    % Murphy (225)
+    lam_dof = gmm.lam_dof + gmm.n; 
         
-    for n = 1:N
-        k = gmm.z(n);
-        X_diff = X(n, :) - gmm.mu(k, :);
-        dev = 0.5 * X_diff.^2;
-        %[X(n, :); gmm.mu(k, :)]
+    shape_scale = (gmm.scale_prior * gmm.n) ./ (gmm.scale_prior + gmm.n);
+    for k = 1:gmm.K
+        dm = (gmm.mu_mean(k,:) - MK(k,:));
+        assert(all(size(dm) == [1 D]));
         
-        % Murphy (118)
-        lam_scale(k, :) = lam_scale(k, :) + dev;
-    end        
+        lam_shape = gmm.lam_shape + SK(:,:,k) + shape_scale(k) * (dm'*dm)
+        
+        gmm.lam(:,:,k) = wishrnd(lam_shape, lam_dof(k));        
+    end                    
     
-    gmm.lam = gamrnd(lam_shape, 1 ./ lam_scale);    
-    assert(all(size(gmm.lam) == [gmm.K, D]));
+    %% MU
+    % Murphy (226)
+    gmm.scale = gmm.scale_prior + gmm.n;
+    % Murphy (222)        
+    mu_mean_top = (gmm.scale_prior * gmm.mu_mean + bsxfun(@times, gmm.n, MK));
+    mu_mean_bot = (gmm.scale_prior + gmm.n);
+    mu_mean     = bsxfun(@times, mu_mean_top, 1 ./ mu_mean_bot);        
     
+    for k = 1:gmm.K        
+        gmm.mu(k,:) = mvnrnd(mu_mean(k,:), inv(gmm.scale(k) * gmm.lam(:,:,k)));
+    end
+    
+    gmm.mu
+   
     %% Z
     
     % pi was integrated out    
     % TODO: SPECIAL CASE THE BACKGROUND MODEL
-    D2_log_2pi = D/2 * log(2*pi);
-    sum_log_lam = 1/2 * sum(log(gmm.lam), 2);
-    assert(all(size(sum_log_lam) == [gmm.K 1]));
+    
+    % Upper triangle cholesky, for faster mvnormpdf
+    inv_stdev = zeros(D, D, gmm.K);
+    log_Z = zeros(gmm.K, 1);
+    for k = 1:gmm.K
+        inv_stdev(:,:,k) = chol(gmm.lam(:,:,k));
+        log_Z(k) = sum(log(diag(inv_stdev(:,:,k)))) - 0.5 * D * log(2 * pi);
+    end
+    
+    gmm.mu
     
     for n = 1:N
         k = gmm.z(n);
@@ -56,20 +65,16 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         z_prior = (gmm.n + gmm.alpha / gmm.K) ./ (N + gmm.alpha - 1);
         x_like = zeros(gmm.K, 1);
         for k = 1:gmm.K
-            % Hotspot
-            X_diff = X(n,:) - gmm.mu(k,:);
-            quadform = -1/2 * sum(gmm.lam(k,:) .* (X_diff.^2));
-            %x_like(k) = sqrt_2pi_to_D * sqrt(prod(gmm.lam(k,:))) * exp(quadform);                        
-            log_like = -D2_log_2pi + sum_log_lam(k) + quadform;
-            x_like(k) = exp(log_like);
-
-            %old_norm_like = prod(normpdf(X(n,:), gmm.mu(k,:), 1 ./ sqrt(gmm.lam(k,:))));                
-            %[x_like(k), old_norm_like]
-            %assert(abs(x_like(k) - old_norm_like) < 10e-5);
+            % Hotspot -- copied from lightspeed            
+            check_like = mvnpdf(X(n,:), gmm.mu(k,:), inv(gmm.lam(:,:,k)));
             
-            %[k x_like(k); X(n,:); gmm.mu(k,:); 1 ./ gmm.lam(k,:)]
-        end
-        %x_like
+            dx = X(n,:) - gmm.mu(k,:);
+            dx_std = dx * inv_stdev(:,:,k);
+            log_like = log_Z(k) - 0.5 * (dx_std*dx_std');
+            x_like(k) = exp(log_like);
+            assert(x_like(k) > 0);
+            [x_like(k), check_like];
+        end        
         
         % Yu (4.14)        
         z_pdf   = z_prior .* x_like;
