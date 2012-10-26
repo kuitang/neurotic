@@ -2,7 +2,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     % Diagonal covariance collapsed Gibbs sampling    
     [N D] = size(X);
     
-    % Sanity checks
+    % Sanity checks    
     assert(sum(gmm.n) == N);        
     
     %% MU
@@ -17,9 +17,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     mu_mean = bsxfun(@times, w, MX) + bsxfun(@times, 1 - w, gmm.mu_mean);
     assert(all(size(mu_mean) == [gmm.K, D]));
     
-    gmm.mu = normrnd(mu_mean, 1 ./ sqrt(mu_prec));
-    disp('mu');
-    gmm.mu
+    gmm.mu = normrnd(mu_mean, 1 ./ sqrt(mu_prec));    
     assert(all(size(gmm.mu) == [gmm.K, D]));
     assert(all(all(~isnan(gmm.mu))));
     
@@ -38,9 +36,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         lam_scale(k, :) = lam_scale(k, :) + dev;
     end        
     
-    gmm.lam = gamrnd(lam_shape, 1 ./ lam_scale);
-    disp('lam')
-    gmm.lam
+    gmm.lam = gamrnd(lam_shape, 1 ./ lam_scale);    
     assert(all(size(gmm.lam) == [gmm.K, D]));
     
     %% Z

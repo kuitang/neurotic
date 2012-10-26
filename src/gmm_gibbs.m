@@ -1,35 +1,35 @@
-function [ gmm ] = gmm_gibbs( X, K, niters )
-
+function [ samples ] = gmm_gibbs(X, gmm, niters, burn_in, sample_freq, recovery_file )
+    assert(nargin >= 5, 'not enough arguments!');
+    
     [N, D] = size(X);
-    % Weak prior
-    gmm = struct('K', K, ...
-                 'mu_prec', 0.1*ones(K, D), ...
-                 'mu_mean', rand(K, D), ...
-                 'lam_shape', 0.1*ones(K, D), ...
-                 'lam_scale', 0.1*ones(K, D), ...
-                 'z', randsample(K, N, true), ...
-                 'alpha', 10*ones(K, 1));
-    % Gibbs sampling needs to start with something...
-    gmm.lam = gamrnd(gmm.lam_shape, 1 ./ gmm.lam_scale);
-    assert(all(size(gmm.lam) == [K D]));    
     
-    % Initialize with k-means
-    [gmm.z, gmm.mu_mean] = kmeans(X, K);    
-    
-    gmm.n = zeros(K, 1);    
-    for n = 1:N
-        k = gmm.z(n);
-        gmm.n(k) = gmm.n(k) + 1;
+    samples = [];
+
+    if nargin >=6 && ~isempty(recovery_file)
+        load(recovery_file);
+        first = iter + 1;        
+    else
+        first = 1;
     end
     
-    for i = 1:niters
+    tic
+    for i = first:niters
         tic
         z_old = gmm.z;
         gmm = gmm_gibbs_iter(gmm, X);
         change = mean(abs(z_old ~= gmm.z));
-        disp(['Iteration ' num2str(i) ' took ' num2str(toc) ' seconds; ' num2str(change) ' changed classes']);
-        gmm.n        
-    end
+        disp(['Iteration ' num2str(i) ' took ' num2str(toc) ' seconds; ' num2str(change) ' changed classes']);        
 
+        if i > burn_in && mod(i, sample_freq) == 0
+            samples = [samples gmm];
+            iter = i;
+            save(['iter' num2str(i) '.mat']);
+        end
+        
+        [gmm.n gmm.mu gmm.lam]
+
+    end
+  
 end
+
 
