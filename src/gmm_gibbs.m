@@ -26,7 +26,10 @@ function [ samples ] = gmm_gibbs(X, gmm, niters, burn_in, sample_freq, recovery_
             save(['iter' num2str(i) '.mat']);
         end
         
+        disp('n')
         gmm.n
+        
+        disp('mu')
         gmm.mu        
 
     end

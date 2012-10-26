@@ -4,24 +4,24 @@ function [ gmm ] = make_gmm_prior( X, K )
     % So TINY gamma.
     % Got the settings from this Wikipedia page..    
     gmm = struct('K', K, ...
-                 'lam_shape', [], ...
+                 'lam_cov', [], ...
                  'lam', [], ...
-                 'lam_dof', 20, ...                      % Upper triangle
+                 'lam_dof', 10, ...                      % Upper triangle
                  'mu_mean', rand(K, D), ...             % Means are robust from the data.
-                 'scale_prior', 0.1, ...                % We never want much precision. Our Bayesian update mayes Wisharts very precise.
+                 'kappa', 0.1*(N/K), ...                
                  'z', randsample(K, N, true), ...       % This doesn't matter
                  'alpha', 0.2*(N/K)*ones(K, 1));        % Each component starts 20% full. Essential to prevent collapsing to 0.
                  
     % This is all I know
-    gmm.lam_shape =  1e-15 * [ 1 1 0.3
-                      1 1 0.3
-                      0.3 0.3 0.1 ];
+    gmm.lam_cov =  100 * [ 1 -0.1 0.2; -0.1 1 0.2; 0.2 0.2 0.3];
                   
     % Gibbs sampling needs to start with something...
     gmm.lam = zeros(D, D, K);
     for k = 1:K        
-        gmm.lam(:,:,k) = wishrnd(gmm.lam_shape, gmm.lam_dof);
+        gmm.lam(:,:,k) = wishrnd(inv(gmm.lam_cov), gmm.lam_dof) / gmm.lam_dof;
     end
+    
+    gmm.lam
 
     
     % Initialize with k-means

@@ -9,7 +9,7 @@ function [ MK, SK ] = cond_moments( X, z )
         assert(sum(z==k) > 0);
         sX = X(z==k, :);
         MK(k,:)   = mean(sX, 1);
-        SK(:,:,k) = cov(sX, 1); % cov(sX, 1) normalizes by N                
+        SK(:,:,k) = cov(sX, 1) % cov(sX, 1) normalizes by N        
     end        
 
 end
