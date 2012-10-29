@@ -1,5 +1,6 @@
 # Data
 data/*
+src/*.mat
 
 # MATLAB
 *~

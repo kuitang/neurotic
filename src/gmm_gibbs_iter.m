@@ -1,82 +1,119 @@
 function [ gmm ] = gmm_gibbs_iter( gmm, X )
-    % Full covariance collapsed Gibbs sampling    
+% Full covariance collapsed Gibbs sampling
+%
+% gmm.s_x denotes a sampled variable
+% gmm.p   denotes a parameter
+% y_      denotes a collapsed variable
+% 
+% mix_ ~ Dir(gmm.prior_mix)
+% 
+% for k=1:gmm.K
+%     mean_(k,:), cov_(:,:,k) ~ NW(gmm.prior_mean, gmm.prior_cov,
+%                                  gmm.prior_scale, gmm.prior_dof)
+%     (Parameters: gmm.mean, gmm.cov, gmm.scale, gmm.dof)
+% 
+% for n=1:N
+%     gmm.s_z(n)                  ~ Discrete(mix_)
+%     gmm.X(n:) | gmm.s_z(n) == k ~ N(mean_(k,:), cov_(:,:,k))   
+%
+% Sample log-likelihood:
+%
+% l(gmm.s_z | X) = sum(
+    
     [N D] = size(X);
     
     % Sanity checks    
     assert(sum(gmm.n) == N);        
-            
-    %% ?
-    [MK, SK] = cond_moments(X, gmm.z);    
-    % Murphy (225)
-    lam_dof = gmm.lam_dof + gmm.n;         
-            
-    shape_scale = (gmm.kappa * gmm.n) ./ (gmm.kappa + gmm.n);
+
+    % Sample statistics
+    [MK, SK, NMK, NSK] = cond_moments(X, gmm.K, gmm.z);
+    
+    %% MU            
+    % Bishop (10.60)
+    gmm.scale = gmm.prior_scale + gmm.n;
+    % Bishop (10.61)
+    gmm.mean = bsxfun(@plus, gmm.prior_scale .* gmm.prior_mean, NMK);
+    gmm.mean = bsxfun(@times, 1 ./ gmm.scale, gmm.mean);    
+    
+    %% LAMBDA
+    % Bishop (10.63)
+    gmm.dof = gmm.prior_dof + gmm.n;    
+        
+    km = (gmm.prior_scale * gmm.n) ./ (gmm.prior_scale + gmm.n);
+    dm = MK - gmm.mean;
+    % todo: learn a tensor library
     for k = 1:gmm.K
-        dm = (gmm.mu_mean(k,:) - MK(k,:));
-        assert(all(size(dm) == [1 D]));
-        
-        gmm.lam_cov
-        disp('C')
-        SK(:,:,k) * gmm.n(k)
-        disp('dm')
-        shape_scale(k) * (dm'*dm)
-        
-        lam_shape = gmm.lam_cov + SK(:,:,k) + shape_scale(k) * (dm'*dm);
-        
-        % Murphy (223)
-        gmm.lam(:,:,k) = wishrnd(inv(lam_shape), lam_dof(k)) / lam_dof(k);
-    end    
+        gmm.cov(:,:,k) = gmm.prior_cov + NSK(:,:,k);
+        gmm.cov(:,:,k) = gmm.cov(:,:,k) + km(k) * (dm' * dm);
+        gmm.cov(:,:,k);
+        [T p] = cholcov(gmm.cov(:,:,k));
+        assert(p == 0, 'gmm.cov(:,:,k) was not PD!');
+    end        
     
-    %% ?
-    % Murphy (226)
-    gmm.scale = gmm.kappa + gmm.n;
-    % Murphy (222)        
-    mu_mean_top = (gmm.kappa * gmm.mu_mean + bsxfun(@times, gmm.n, MK));
-    mu_mean_bot = (gmm.kappa + gmm.n);
-    mu_mean     = bsxfun(@times, mu_mean_top, 1 ./ mu_mean_bot);        
-    
-    MU_VAR = inv(gmm.scale(k) * gmm.lam(:,:,k))
-    
+    %% Posterior predictive
+    % Murphy (228)    
+    pred_dof  = gmm.dof - D + 1;
+    coef = (gmm.scale + 1) ./ (gmm.scale .* pred_dof);
     for k = 1:gmm.K        
-        gmm.mu(k,:) = mvnrnd(mu_mean(k,:), inv(gmm.scale(k) * gmm.lam(:,:,k)));
-    end        
-   
-    %% Z
+        pred_corr(:,:,k) = coef(k) * gmm.cov(:,:,k);
+    end
     
-    % pi was integrated out    
-    % TODO: SPECIAL CASE THE BACKGROUND MODEL
+    %% Z          
+
+    % Prepare the mvts
     
-    % Upper triangle cholesky, for faster mvnormpdf
-    inv_stdev = zeros(D, D, gmm.K);
-    log_Z = zeros(gmm.K, 1);
-    for k = 1:gmm.K
-        inv_stdev(:,:,k) = chol(gmm.lam(:,:,k));
-        log_Z(k) = sum(log(diag(inv_stdev(:,:,k)))) - 0.5 * D * log(2 * pi);
-        CLASS_VAR = inv(gmm.lam(:,:,k))
-    end        
+    % This MVT part is shitty... it SHOULD mix!
+    % The points should NOT belong to the same class always!
+    % PLOT some MVTs. Maybe your code is shit after all.
+    %
+    % This is why you are failing:
+    % - Iteration 1: everyone has the same mean
+    %   - SOMEHOW, one cluster gets all the points due to this likelihood.
+    % - Iteration 2: this cluster gets all the points, so the variance is
+    %   (the conjugate Bayesian update makes sense: the more points, the
+    %   more you know.)
+    %   - But the cluster selection is unstable. Once the variance
+    %   decreases (substantially), a different cluster becomes more likely.
+    %  - Iteration 3: Oscillation.
+    %
+    %  OBVIOUSLY THE LIKELIHOOD IS BORKED!
+    %  Do you not understand MVT? The *parameters* seem to make sense. It's
+    %  your likelihood that... doesn't?
+    mvtparams = cell(gmm.K, 1);    
+    for k = 1:gmm.K        
+        mvtparams{k} = make_mvt(gmm.mean(k,:), pred_corr(:,:,k), pred_dof(k));
+    end
     
-    for n = 1:N
+    % sampling is only done here, so only these terms contribute to like
+    gmm.loglike = 0;
+    idxs = randperm(N);
+    for nn = 1:N
+        n = idxs(nn);
         k = gmm.z(n);
         % Temporarily remove ourselves
         gmm.n(k) = gmm.n(k) - 1;
         
         % Yu (4.11)
-        z_prior = (gmm.n + gmm.alpha / gmm.K) ./ (N + gmm.alpha - 1);
+        z_prior = (gmm.n + gmm.prior_mix / gmm.K) ./ (N + gmm.prior_mix - 1);
         x_like = zeros(gmm.K, 1);
+        
+        % Background model
+        %
+        % Background is white; use a triangular distribution
+        %x_like(1) = 1/N * 2 * (1 - X(n,3));                        
+%         s = sqrt(diag(C));
+% if (any(s~=1))
+%     C = C ./ (s * s');
+% end
         for k = 1:gmm.K
-            % Hotspot -- copied from lightspeed            
-            %check_like = mvnpdf(X(n,:), gmm.mu(k,:), inv(gmm.lam(:,:,k)));
-            
-            dx = X(n,:) - gmm.mu(k,:);
-            dx_std = dx * inv_stdev(:,:,k);
-            log_like = log_Z(k) - 0.5 * (dx_std*dx_std');
-            x_like(k) = exp(log_like);
-            %assert(x_like(k) > 0);
-            %assert(abs(x_like(k) - check_like) < 1e-8, x_like(k) - check_like);
-        end                
+            % Hotspot
+            x_like(k) = fast_mvtpdf(mvtparams{k}, X(n,:));            
+            %x_like(k) = mvtpdf(X(n,:) - gmm.mean(k,:), pred_corr(:,:,k), pred_dof(k));                        
+            %assert(abs(x_like(k) - check_like) < 1e-8, ...
+            %    ['likelihoods not within 1e-8: ' num2str(x_like(k) - check_like)]);
+        end                        
         
-        % Yu (4.14)
-        
+        % Yu (4.14)        
         z_pdf   = z_prior .* x_like;
         
         % Sanity check:        
@@ -84,7 +121,8 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         
         % Unnormalized inverse cdf sampling        
         z_cdf = cumsum(z_pdf);        
-        k_new = find(z_cdf > z_cdf(end)*rand(1), 1);              
+        k_new = find(z_cdf > z_cdf(end)*rand(1), 1);
+        gmm.loglike = gmm.loglike + log(z_pdf(k_new));
         gmm.z(n) = k_new;
         gmm.n(k_new) = gmm.n(k_new) + 1;                
     end        
