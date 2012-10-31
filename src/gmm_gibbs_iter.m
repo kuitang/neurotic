@@ -69,7 +69,9 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     
     % Precompute likelihood for every point for every class!!!
     % That means you don't check idxs = gmm.s_z == k; idiot.
-    x_like(:,1) = 1/N * (2 - 2*X(:,3));    
+    
+    x_like(:,1) = gmm.background_like(gmm, X);
+
     for k = 2:gmm.K                
         mvtparams   = make_mvt(gmm.mean(k,:), pred_cov(:,:,k), pred_dof(k));
         x_like(:,k) = fast_mvtpdf(mvtparams, X);        

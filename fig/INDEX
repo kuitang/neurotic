@@ -1,3 +1,5 @@
 Id; Title; Commit; Notes
 3; GMM, triangular background, k=7, weak Dirichlet; 2f5d209; Full covariances.
-
+4_1; slice 1 of kasthuri11, middle of image, raw; f618d0c; Reference image for single-slice segments.
+4_2; slice 1 of kasthuri11, thresholded at 0.2; f618d0c; To demonstrate background model priors
+4_3; slice 1 of kasthuri11, thresholded at 0.3; f618d0c; To demonstrate background model priors

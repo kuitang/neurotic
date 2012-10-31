@@ -2,14 +2,8 @@ function [ samples ] = gmm_gibbs(X, img, gmm, niters, burn_in, sample_freq, reco
     assert(nargin >= 5, 'not enough arguments!');
     
     [N, D] = size(X);
-    
     samples = [];
-
-    gmm.n = zeros(gmm.K, 1);
-    for n = 1:N
-        k = gmm.s_z(n);
-        gmm.n(k) = gmm.n(k) + 1;
-    end
+    gmm.n = accumarray(gmm.s_z, ones(1,N));    
     
     if nargin >=7 && ~isempty(recovery_file)
         load(recovery_file);
