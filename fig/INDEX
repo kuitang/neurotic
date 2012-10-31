@@ -8,4 +8,9 @@ Id; Title; Commit; Notes
 5_3; GMM beta(1,1.5) background, k = 6; cda458c
 5_4; background distribution. R = triangle, B = beta(1,3), C = beta(1,1.5); cda458c
 5_5; GMM background sigmoid centered at 0.2, compressed 10x, k =6; b692221 
+6_hist; Intensity histogram of slice 1 (figure 4_1) at 500 bins; 81ed5da
+6_prior_countourf; {\beta}_{prior}_{updf}({s},{m},{0.1},{0.1},{0.0005}); 81ed5da
+6_beta15; ; 81ed5da
+6_beta25; ; 81ed5da
+6_posterior; {\beta}_{posterior}_{updf}([{0.1},{0.1},{0.0005}],{s},{m},{xs}) fits 100 samples from beta(s=90, m=0.8) ; ; 
 
