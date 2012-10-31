@@ -1,6 +1,6 @@
 function [ g ] = plot_point_overlay( img, gmm, PHI )
 
-    % Construct an image map
+    % Construct an image map. Assume PHI is ordered by x, y.
     [N, D] = size(PHI);
     [X, Y] = size(img);
     c = jet(gmm.K);
@@ -13,10 +13,10 @@ function [ g ] = plot_point_overlay( img, gmm, PHI )
         overlay(x,y,:) = c(gmm.s_z(n),:);
     end
     
-    h = imshow(img);
-    hold on
+    %h = imshow(img);
+    %hold on
     g = image(overlay);    
-    set(g, 'AlphaData', 1);    
+    %set(g, 'AlphaData', 1);    
     hold off    
 
 end

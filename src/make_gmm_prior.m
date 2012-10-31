@@ -1,15 +1,16 @@
-function [ gmm ] = make_gmm_prior( X, K )
+function [ gmm ] = make_gmm_prior( X, K, background_like )
     [N, D] = size(X);
     % Want a STRONG pri for a HIGH variance (LOW precision).
     % So TINY gamma.
     % Got the settings from this Wikipedia page..    
-    gmm = struct('K', K, ...                 
+    gmm = struct('K', K, ...
+                 'N', N, ...
                  'prior_mean', [100 100 0.75], ...
                  'prior_cov', cov(X), ...
                  'prior_dof', 4, ...
                  'prior_scale', 1, ...
                  's_z', randsample(K, N, true), ...
-                 'prior_mix', []);
+                 'prior_mix', []);        
     
     % Weaker Dirichlet prior (\sum \alpha_k = 1)
     gmm.prior_mix = zeros(K, 1);
@@ -19,7 +20,8 @@ function [ gmm ] = make_gmm_prior( X, K )
     % All points with intensity < 0.3 are considered candidates for
     % determined by a very sophisticated method called "taking thresholds
     % and looking." For now, fit a method-of-moments Beta (notebook pp 23)    
-    gmm.background_like = @(gmm_, X_) 1/N * betapdf(X_(:,3), 1, 5);  
+        
+    gmm.background_like = background_like;
     
     % Initialize with k-means
     % Only valid if each feature is Gaussian!

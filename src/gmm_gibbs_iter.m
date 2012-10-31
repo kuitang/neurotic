@@ -33,7 +33,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     gmm.scale = gmm.prior_scale + gmm.n;
     % Bishop (10.61)
     gmm.mean = bsxfun(@plus, gmm.prior_scale .* gmm.prior_mean, NMK);
-    gmm.mean = bsxfun(@times, 1 ./ gmm.scale, gmm.mean);    
+    gmm.mean = bsxfun(@times, 1 ./ gmm.scale, gmm.mean);        
     
     %% LAMBDA
     % Bishop (10.63)
@@ -47,7 +47,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         gmm.cov(:,:,k) = gmm.cov(:,:,k) + km(k) * (dm' * dm);        
         [T p] = cholcov(gmm.cov(:,:,k));
         assert(p == 0, 'gmm.cov(:,:,k) was not PD!');
-    end        
+    end            
     
     %% Posterior predictive
     % Murphy (228)    
@@ -63,35 +63,16 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     % precompute them here.
     x_like = zeros(N, gmm.K);
 
-    % Class 1 is background.
-    % 
-    % Triangular distribution.        
+    % Class 1 is background.     
+    x_like(:,1) = gmm.background_like(gmm, X);
     
     % Precompute likelihood for every point for every class!!!
     % That means you don't check idxs = gmm.s_z == k; idiot.
     
-    x_like(:,1) = gmm.background_like(gmm, X);
-
     for k = 2:gmm.K                
         mvtparams   = make_mvt(gmm.mean(k,:), pred_cov(:,:,k), pred_dof(k));
-        x_like(:,k) = fast_mvtpdf(mvtparams, X);        
-        
-        %stdX = bsxfun(@minus, X(idxs,:), gmm.mean(k,:));
-        %stdev = sqrt(diag(pred_cov(:,:,k)));
-        %corr = pred_cov(:,:,k) ./ (stdev' * stdev); 
-        
-        %stdX = bsxfun(@times, stdX, 1 ./ stdev');
-        %x_like(idxs,k) = mvtpdf(stdX, pred_cov(:,:,k), pred_dof(k));        
-        
-        %norm_st_like = mvnpdf(stdX, zeros(1, 3), corr);
-        %norm_like = mvnpdf(X(idxs,:), gmm.mean(k,:), pred_cov(:,:,k));
-        %assert(all(abs(norm_like - norm_st_like) < 1e-8));
-        
-        %norm_like = mvnpdf(X(idxs,:), gmm.mean(k,:), pred_cov(:,:,k));
-        %[x_like(idxs,k) slow_like norm_like norm_st_like]        
-    end
-    
-    %x_like(idxs, :)
+        x_like(:,k) = fast_mvtpdf(mvtparams, X);                       
+    end        
     
     % Now, sample
     gmm.loglike = 0;

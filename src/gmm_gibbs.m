@@ -24,18 +24,17 @@ function [ samples ] = gmm_gibbs(X, img, gmm, niters, burn_in, sample_freq, reco
         
         fprintf(1, 'Iter %d: time = %0.2f; speed = %.2f; change = %0.3f; loglike = %06.2f\n', ...
                 i, itertime, rate, change, gmm.loglike);     
-
-        plot_point_overlay(img, gmm, X);
-        drawnow;
         
-        if i > burn_in && mod(i, sample_freq) == 0
-            samples = [samples gmm];
-            iter = i;
-            if ~isempty(img)
-                plot_point_overlay(img, gmm, X);
-                drawnow;
+        if mod(i, sample_freq) == 0
+            plot_point_overlay(img, gmm, X);
+            drawnow;
+            
+            if i > burn_in
+                samples = [samples gmm];
+                iter = i;
+
+                %save(['iter' num2str(i) '.mat']);
             end
-            %save(['iter' num2str(i) '.mat']);
         end        
 
     end
