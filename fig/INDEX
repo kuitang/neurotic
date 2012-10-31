@@ -3,3 +3,8 @@ Id; Title; Commit; Notes
 4_1; slice 1 of kasthuri11, middle of image, raw; f618d0c; Reference image for single-slice segments.
 4_2; slice 1 of kasthuri11, thresholded at 0.2; f618d0c; To demonstrate background model priors
 4_3; slice 1 of kasthuri11, thresholded at 0.3; f618d0c; To demonstrate background model priors
+5_1; GMM triangular background, k = 6; cda458c
+5_2; GMM beta(1,3) background, k = 6; cda458c
+5_3; GMM beta(1,1.5) background, k = 6; cda458c
+5_4; GMM background sigmoid centered at 0.2, compressed 10x, k =6; 
+

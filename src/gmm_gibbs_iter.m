@@ -65,7 +65,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
 
     % Class 1 is background.     
     x_like(:,1) = gmm.background_like(gmm, X);
-    
+    assert(all(x_like(:,1) > 0));
     % Precompute likelihood for every point for every class!!!
     % That means you don't check idxs = gmm.s_z == k; idiot.
     
