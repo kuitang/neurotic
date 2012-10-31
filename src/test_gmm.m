@@ -9,7 +9,7 @@ function [ gmm ] = test_gmm(niter)
                  'prior_scale', 1, ...
                  'prior_mix', 10, ...
                  'prior_dof', 5, ...
-                 'z', randsample(3,N,true));                 
+                 's_z', randsample(3,N,true));                 
     
-    gmm = gmm_gibbs(X, gmm, niter, 10, 50);
+    gmm = gmm_gibbs(X, [], gmm, niter, 10, 50);
 end

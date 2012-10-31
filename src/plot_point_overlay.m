@@ -10,7 +10,7 @@ function [ g ] = plot_point_overlay( img, gmm, PHI )
     for n = 1:N
         x = PHI(n,1);
         y = PHI(n,2);
-        overlay(x,y,:) = c(gmm.z(n),:);
+        overlay(x,y,:) = c(gmm.s_z(n),:);
     end
     
     h = imshow(img);

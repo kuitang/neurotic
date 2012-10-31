@@ -1,6 +1,6 @@
 function [ M, S, NM, NS ] = cond_moments( X, K, z )
 % conditional MK(k,:) and SK(k,:,:) are conditional sample mean/cov
-    [Nk, D] = size(X);    
+    [N, D] = size(X);    
     
     M  = zeros(K, D);
     NM = zeros(K, D);

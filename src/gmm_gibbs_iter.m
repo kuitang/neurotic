@@ -13,20 +13,20 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
 %     (Parameters: gmm.mean, gmm.cov, gmm.scale, gmm.dof)
 % 
 % for n=1:N
-%     gmm.s_z(n)                  ~ Discrete(mix_)
-%     gmm.X(n:) | gmm.s_z(n) == k ~ N(mean_(k,:), cov_(:,:,k))   
+%     gmm.s_z(n)                   ~ Discrete(mix_)
+%     gmm.X(n,:) | gmm.s_z(n) == k ~ 1/N * 2 * 2*X(n,:)           if k == 1
+%                                    N(mean_(k,:), cov_(:,:,k))   if k >= 1
 %
 % Sample log-likelihood:
 %
-% l(gmm.s_z | X) = sum(
-    
+
     [N D] = size(X);
     
     % Sanity checks    
     assert(sum(gmm.n) == N);        
 
     % Sample statistics
-    [MK, SK, NMK, NSK] = cond_moments(X, gmm.K, gmm.z);
+    [MK, SK, NMK, NSK] = cond_moments(X, gmm.K, gmm.s_z);
     
     %% MU            
     % Bishop (10.60)
@@ -44,8 +44,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     % todo: learn a tensor library
     for k = 1:gmm.K
         gmm.cov(:,:,k) = gmm.prior_cov + NSK(:,:,k);
-        gmm.cov(:,:,k) = gmm.cov(:,:,k) + km(k) * (dm' * dm);
-        gmm.cov(:,:,k);
+        gmm.cov(:,:,k) = gmm.cov(:,:,k) + km(k) * (dm' * dm);        
         [T p] = cholcov(gmm.cov(:,:,k));
         assert(p == 0, 'gmm.cov(:,:,k) was not PD!');
     end        
@@ -55,75 +54,64 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     pred_dof  = gmm.dof - D + 1;
     coef = (gmm.scale + 1) ./ (gmm.scale .* pred_dof);
     for k = 1:gmm.K        
-        pred_corr(:,:,k) = coef(k) * gmm.cov(:,:,k);
+        pred_cov(:,:,k) = coef(k) * gmm.cov(:,:,k);
     end
     
     %% Z          
-
-    % Prepare the mvts
     
-    % This MVT part is shitty... it SHOULD mix!
-    % The points should NOT belong to the same class always!
-    % PLOT some MVTs. Maybe your code is shit after all.
-    %
-    % This is why you are failing:
-    % - Iteration 1: everyone has the same mean
-    %   - SOMEHOW, one cluster gets all the points due to this likelihood.
-    % - Iteration 2: this cluster gets all the points, so the variance is
-    %   (the conjugate Bayesian update makes sense: the more points, the
-    %   more you know.)
-    %   - But the cluster selection is unstable. Once the variance
-    %   decreases (substantially), a different cluster becomes more likely.
-    %  - Iteration 3: Oscillation.
-    %
-    %  OBVIOUSLY THE LIKELIHOOD IS BORKED!
-    %  Do you not understand MVT? The *parameters* seem to make sense. It's
-    %  your likelihood that... doesn't?
-    mvtparams = cell(gmm.K, 1);    
-    for k = 1:gmm.K        
-        mvtparams{k} = make_mvt(gmm.mean(k,:), pred_corr(:,:,k), pred_dof(k));
+    % We will need a likelihood for each sample and each class, so
+    % precompute them here.
+    x_like = zeros(N, gmm.K);
+
+    % Class 1 is background.
+    % 
+    % Triangular distribution.        
+    
+    % Precompute likelihood for every point for every class!!!
+    % That means you don't check idxs = gmm.s_z == k; idiot.
+    x_like(:,1) = 1/N * (2 - 2*X(:,3));    
+    for k = 2:gmm.K                
+        mvtparams   = make_mvt(gmm.mean(k,:), pred_cov(:,:,k), pred_dof(k));
+        x_like(:,k) = fast_mvtpdf(mvtparams, X);        
+        
+        %stdX = bsxfun(@minus, X(idxs,:), gmm.mean(k,:));
+        %stdev = sqrt(diag(pred_cov(:,:,k)));
+        %corr = pred_cov(:,:,k) ./ (stdev' * stdev); 
+        
+        %stdX = bsxfun(@times, stdX, 1 ./ stdev');
+        %x_like(idxs,k) = mvtpdf(stdX, pred_cov(:,:,k), pred_dof(k));        
+        
+        %norm_st_like = mvnpdf(stdX, zeros(1, 3), corr);
+        %norm_like = mvnpdf(X(idxs,:), gmm.mean(k,:), pred_cov(:,:,k));
+        %assert(all(abs(norm_like - norm_st_like) < 1e-8));
+        
+        %norm_like = mvnpdf(X(idxs,:), gmm.mean(k,:), pred_cov(:,:,k));
+        %[x_like(idxs,k) slow_like norm_like norm_st_like]        
     end
     
-    % sampling is only done here, so only these terms contribute to like
+    %x_like(idxs, :)
+    
+    % Now, sample
     gmm.loglike = 0;
     idxs = randperm(N);
     for nn = 1:N
         n = idxs(nn);
-        k = gmm.z(n);
+        k = gmm.s_z(n);
         % Temporarily remove ourselves
         gmm.n(k) = gmm.n(k) - 1;
         
         % Yu (4.11)
-        z_prior = (gmm.n + gmm.prior_mix / gmm.K) ./ (N + gmm.prior_mix - 1);
-        x_like = zeros(gmm.K, 1);
-        
-        % Background model
-        %
-        % Background is white; use a triangular distribution
-        %x_like(1) = 1/N * 2 * (1 - X(n,3));                        
-%         s = sqrt(diag(C));
-% if (any(s~=1))
-%     C = C ./ (s * s');
-% end
-        for k = 1:gmm.K
-            % Hotspot
-            x_like(k) = fast_mvtpdf(mvtparams{k}, X(n,:));            
-            %x_like(k) = mvtpdf(X(n,:) - gmm.mean(k,:), pred_corr(:,:,k), pred_dof(k));                        
-            %assert(abs(x_like(k) - check_like) < 1e-8, ...
-            %    ['likelihoods not within 1e-8: ' num2str(x_like(k) - check_like)]);
-        end                        
-        
+        z_prior = (gmm.n + gmm.prior_mix / gmm.K) ./ (N + gmm.prior_mix - 1);        
+
         % Yu (4.14)        
-        z_pdf   = z_prior .* x_like;
-        
-        % Sanity check:        
-        %assert(min(z_pdf) >= 10e-10*max(z_pdf));
-        
+        z_pdf   = z_prior' .* x_like(n,:);
+                
         % Unnormalized inverse cdf sampling        
         z_cdf = cumsum(z_pdf);        
-        k_new = find(z_cdf > z_cdf(end)*rand(1), 1);
+        k_new = find(z_cdf > z_cdf(end)*rand(1), 1);                
+        
         gmm.loglike = gmm.loglike + log(z_pdf(k_new));
-        gmm.z(n) = k_new;
+        gmm.s_z(n) = k_new;
         gmm.n(k_new) = gmm.n(k_new) + 1;                
     end        
 
