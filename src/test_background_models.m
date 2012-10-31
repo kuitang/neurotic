@@ -2,7 +2,10 @@
 triangle   = @(gmm_, X_) 2 / gmm_.N * (1 - X_(:,3));
 beta_tight = @(gmm_, X_) 1 / gmm_.N * betapdf(X_(:,3), 1, 3);
 beta_loose = @(gmm_, X_)  1 / gmm_.N * betapdf(X_(:,3), 1, 1.5);
-ss_sigmoid = @(gmm_, X_) (1 / gmm_.N) * (1 / 0.21265926) * (1 - (1 ./ (1 + exp( -10 * (X_(:,3) - 0.2) ) ) ) )
+ss_sigmoid = @(gmm_, X_) (1 / gmm_.N) * (1 / 0.21265926) * (1 - (1 ./ (1 + exp( -10 * (X_(:,3) - 0.2) ) ) ) );
+ss_sigmoid_filter = @(gmm_, X_) (1 / gmm_.N) * (1 / 0.21265926) * (1 - (1 ./ (1 + exp( -10 * (X_(:,3) - 0.2) ) ) ) ) .* (background_filter(gmm_, X_, 1));
+
+
 
 %% Run some samples
 figure;
@@ -17,6 +20,11 @@ title('GMM beta(1,1.5) background, k = 6');
 figure;
 ss_sigmoid_samps = gmm_gibbs(PHI1, f1, make_gmm_prior(PHI1, 6, ss_sigmoid), 500, 200, 10);
 title('GMM background sigmoid centered at 0.2, compressed 10x, k =6');
+
+%% The shebang
+figure;
+ss_sigmoid_filter_samps = gmm_gibbs(PHI1, f1, make_gmm_prior(PHI1, 6, ss_sigmoid_filter), 500, 200, 10);
+title('GMM background sigmoid center at 0.2, compressed 10x, 3x3 filter, k =6');
 
 %% Collate samples
 % triangle_mean   = struct_mean(triangle_samps);
