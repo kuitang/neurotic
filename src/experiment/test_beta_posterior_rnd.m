@@ -1,7 +1,11 @@
 %% Generate data
-prior_params = [ 0.1 0.1 0.0005 ];
+%
+% Want: s > 1 (unimodal)
+prior_params = [ 1 0.1 0.0005 ];
 true_m = 0.8;
 true_s = 0.9;
+
+ezcontourf(@(s, m) beta_prior_updf(prior_params, s, m), [1 50 0.01 0.99]);
 
 [a b] = beta_sm_to_ab(true_s, true_m);
 a = true_s * true_m;
@@ -18,12 +22,12 @@ mle_params = betafit(xs);
 m_star = interval_to_positive(m);
 
 %% Sample!
-Nsamps = 3000;
-Nburn_in = 1000;
+Nsamps = 50;
+Nburn_in = 100;
 samps = zeros(Nsamps, 2);
 
 for n = 1:Nburn_in
-    [s m_star] = beta_posterior_rnd(prior_params, s, m_star, xs, 0.01);
+    [s m_star] = beta_posterior_mh(prior_params, s, m_star, xs, 0.1);
 end
 
 samps(1,:) = [s m_star];
@@ -33,7 +37,7 @@ Nreject = 0;
 for n = 2:Nsamps
     s_old      = samps(n - 1,1);
     m_star_old = samps(n - 1,2);
-    [s_new m_star_new acc] = beta_posterior_rnd(prior_params, s_old, m_star_old, xs, 0.01);
+    [s_new m_star_new acc] = beta_posterior_mh(prior_params, s_old, m_star_old, xs, 0.1);
     samps(n,:) = [s_new m_star_new];
     if acc        
         Naccept = Naccept + 1;
@@ -52,11 +56,11 @@ end
 disp(['Accept rate: ', num2str(Naccept / Nsamps)]);
 
 figure(1);
-hist(samps(:,1));
+hist(samps(:,1), 25);
 title('s samples');
 
 samps(:,2) = positive_to_interval(samps(:,2));
 
 figure(2);
-hist(samps(:,2));
+hist(samps(:,2), 25);
 title('m samples');

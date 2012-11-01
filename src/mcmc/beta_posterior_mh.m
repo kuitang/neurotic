@@ -1,4 +1,4 @@
-function [ s, m_star, accept ] = beta_posterior_rnd( prior_params, s_old, m_star_old, x, stdev )
+function [ s, m_star, accept ] = beta_posterior_mh( prior_params, s_old, m_star_old, x, stdev )
 % Sample from the beta posterior. Metropolis-Hasting step.
 % Bouguila pages 219 and 220
 %
