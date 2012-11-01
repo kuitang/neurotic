@@ -23,6 +23,11 @@ figure(2);
 ezcontourf(@(s, m) beta_prior_updf(prior_params, s, m), [0 3 0, 1]);
 colorbar;
 
+% Focus on the 2-5 region
+figure(2);
+ezcontourf(@(s, m) beta_prior_updf(prior_params, s, m), [2 5 0, 1]);
+colorbar;
+
 %% Generate data and initialize with MLE
 true_m = 0.8;
 true_s = 10;

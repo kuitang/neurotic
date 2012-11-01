@@ -6,11 +6,13 @@ function [ m ] = struct_mean( st )
     [~, N] = size(st);
     m = st(1);
     
-    fields = fieldnames(st);    
+    fields = fieldnames(st);   
     for i = 1:numel(fields)
+        f = fields{i};
         % Delete non-numeric fields
         if ~isnumeric(st(1).(f))
             fields(i) = []
+            i = i - 1;
         end
     end
     

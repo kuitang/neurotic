@@ -14,3 +14,5 @@ Id; Title; Commit; Notes
 6_beta25; ; 81ed5da
 6_posterior; {\beta}_{posterior}_{updf}([{0.1},{0.1},{0.0005}],{s},{m},{xs}) fits 100 samples from beta(s=90, m=0.8); ea61c93; expected figure. strong prior on variance and weak prior on mean. 
 7_1; IMM beta [0.1 0.1 0.005] 1-avoiding, k =6 ; 9e188af;
+8_result; GMM ss_sigmoid background, k = 6, prior_scale = 0.1, results; ;
+8_diags.pdf; diagnostics for 8_result; 

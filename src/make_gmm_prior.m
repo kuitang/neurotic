@@ -13,7 +13,7 @@ function [ gmm ] = make_gmm_prior( X, K, background_like )
                  'prior_mean', [100 100 0.75], ...
                  'prior_cov', cov(X), ...
                  'prior_dof', 4, ...
-                 'prior_scale', 1, ...
+                 'prior_scale', 0.1, ... % Contribute more precision??? UNDERSTAND THIS PARAMETER!
                  's_z', randsample(K, N, true), ...
                  'prior_mix', []);        
     
@@ -26,7 +26,12 @@ function [ gmm ] = make_gmm_prior( X, K, background_like )
     % determined by a very sophisticated method called "taking thresholds
     % and looking." For now, fit a method-of-moments Beta (notebook pp 23)    
         
-    gmm.background_like = background_like;
+    gmm.background_like = background_like;        
+    
+    gmm.h_diagnostic = figure;
+    set(gmm.h_diagnostic, 'Units', 'normalized', 'Position', ...
+        [0 0.7 0.9 0.4]);
+    gmm.plot_diagnostic = @plot_intensity_hists;
     
     % Initialize with k-means
     % Only valid if each feature is Gaussian!
