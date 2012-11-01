@@ -24,9 +24,12 @@ function [ samples ] = run_mm(iter_f, X, img, mm, niters, burn_in, sample_freq, 
         fprintf(1, 'Iter %d: time = %0.2f; speed = %.2f; change = %0.3f; loglike = %06.2f\n', ...
                 i, itertime, rate, change, mm.loglike);     
         
+        figure(1);
+        plot_point_overlay(img, mm, X);
+        drawnow;
+        
         if mod(i, sample_freq) == 0
-            plot_point_overlay(img, mm, X);
-            drawnow;
+
             
             if i > burn_in
                 samples = [samples mm];

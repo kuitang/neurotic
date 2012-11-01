@@ -12,6 +12,7 @@ function [ like ] = beta_intensity_like( mm, k, x )
     % Parameters
     Nsamps = 50;
     burn_in = 100;
+    MAX_LIKE = 1e10;
     
     % Update step: compute the posterior     
     like = zeros(Nk, 1);
@@ -25,10 +26,11 @@ function [ like ] = beta_intensity_like( mm, k, x )
     %
     % Actually, make this a TODO. Just evaluate each sample. We should get
     % the probabilistic behavior by drawing many, many distribution, and
-    % the general smoothness of the posterior.       
-    [a b] = beta_sm_to_ab(mm.beta_posterior_samps{k}(:,1), ...
-                          mm.beta_posterior_samps{k}(:,2));
-
+    % the general smoothness of the posterior.
+    s = mm.beta_posterior_samps{k}(:,1);                          
+    m = mm.beta_posterior_samps{k}(:,2);
+    [a b] = beta_sm_to_ab(s, m);        
+    
     for ns = 1:Nsamps
         like = like + betapdf(x, a(ns), b(ns));
     end
@@ -36,7 +38,19 @@ function [ like ] = beta_intensity_like( mm, k, x )
     like = like / Nsamps;
     
     disp(['Accept rate: ', num2str(accept_rate)]);
+    figure(10);
+    subplot(2,1,1);    
+    hist(s);
+    title('s samples');
     
-    assert(all(like >= 0));    
+    subplot(2,1,2);
+    hist(m);
+    title('m samples');
+    drawnow;
+    
+    % Clamp the top
+    like(like == Inf) = MAX_LIKE;
+    
+    assert(all(like >= 0 & like ~= Inf));    
 end
 

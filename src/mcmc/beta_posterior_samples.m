@@ -12,8 +12,17 @@ function [ samps, accept_rate ] = beta_posterior_samples( prior_params, x, Nsamp
     % Sample!
     samps = zeros(Nsamps, 2);
     
-    mle_params = betafit(x);
-    [s m_star] = beta_ab_to_sm(mle_params(1), mle_params(2));
+    % MLE init is stupid and underestimates mean. Do method of moments
+    % instead.
+    m = mean(x);
+    m_star = interval_to_positive(m);
+    % Notebook pp 29
+    s = var(x) / (m * (1 - m));
+            
+    % Our prior is designed for s > 2.
+    % Push away for a low-likelihood region
+    s = max(4, s);
+        
     for n = 1:Nburn_in
         [s m_star] = beta_posterior_mh(prior_params, s, m_star, x, stdev);
     end

@@ -27,8 +27,21 @@ function [ s, m_star, accept ] = beta_posterior_mh( prior_params, s_old, m_star_
               lognlike([log(m_star_old) stdev], m_star) - ...
               lognlike([log(s_old)      stdev], s);                  
     
-    r = exp(log_top - log_bot);
-    assert(~isnan(r));    
+    % Special cases
+    if log_top == -Inf && log_bot == -Inf
+        % This point has zero probability.
+        r = 0;
+    elseif log_top == Inf && log_bot == Inf
+        % This point has huge probability, so it is certainly > 1
+        r = 2;
+    elseif isinf(log_top) || isinf(log_bot)
+        % Infinities point in opposite directions. Oh no!
+        error('rOppInf', 'opposite infinities in acceptance! check your math.');
+    elseif isnan(log_top) || isnan(log_bot)
+        error('rNan', 'nan in acceptance! check your math.');
+    else                    
+        r = exp(log_top - log_bot);
+    end    
     
     if rand > r % M-H reject        
         s = s_old;
