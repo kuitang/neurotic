@@ -12,5 +12,5 @@ Id; Title; Commit; Notes
 6_prior_countourf; {\beta}_{prior}_{updf}({s},{m},{0.1},{0.1},{0.0005}); 81ed5da
 6_beta15; ; 81ed5da
 6_beta25; ; 81ed5da
-6_posterior; {\beta}_{posterior}_{updf}([{0.1},{0.1},{0.0005}],{s},{m},{xs}) fits 100 samples from beta(s=90, m=0.8) ; ; 
+6_posterior; {\beta}_{posterior}_{updf}([{0.1},{0.1},{0.0005}],{s},{m},{xs}) fits 100 samples from beta(s=90, m=0.8); ea61c93; expected figure. strong prior on variance and weak prior on mean. 
 

@@ -13,6 +13,11 @@ function [ up ] = beta_posterior_updf( prior_params, s, m, x, logp )
 % logp    = [optiona;] output log probability
 
     [N D] = size(x);
+    
+    % Left and right censor
+    x(x == 0) = eps;
+    x(x == 1) = 1 - eps;
+    
     assert(D == 1, 'beta distribution is for scalar x!');
     assert(length(s) == 1 && length(m) == 1, 's and m must be scalar!');        
 
