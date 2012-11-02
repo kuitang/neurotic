@@ -17,7 +17,7 @@ function [ g ] = plot_point_overlay( img, gmm, PHI )
 %    hold on
     g = image(overlay);
     hold on
-    for k = 1:gmm.K
+    for k = 2:gmm.K
         text(gmm.mean(k,1), gmm.mean(k,2), num2str(k), ...
              'FontSize', 30, 'FontWeight', 'bold');
     end
