@@ -23,79 +23,75 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     [N D] = size(X);
     
     % Sanity checks    
-    assert(sum(gmm.n) == N);        
+    %assert(sum(gmm.n) == N);        
 
-    % Sample statistics
-    [MK, SK, NMK, NSK] = cond_moments(X, gmm.K, gmm.s_z);
+    % Class 1 is background.
+    gmm.x_like(:,1) = 1/gmm.N * gmm.background_pdf(X(:,3));
+    %assert(all(x_like(:,1) > 0));    
     
-    %% MU            
-    % Bishop (10.60)
-    gmm.scale = gmm.prior_scale + gmm.n;
-    % Bishop (10.61)
-    gmm.mean = bsxfun(@plus, gmm.prior_scale .* gmm.prior_mean, NMK);
-    gmm.mean = bsxfun(@times, 1 ./ gmm.scale, gmm.mean);        
-    
-    %% LAMBDA
-    % Bishop (10.63)
-    gmm.dof = gmm.prior_dof + gmm.n;    
-        
-    km = (gmm.prior_scale * gmm.n) ./ (gmm.prior_scale + gmm.n);
-    dm = MK - gmm.mean;
-    % todo: learn a tensor library
-    for k = 1:gmm.K
-        gmm.cov(:,:,k) = gmm.prior_cov + NSK(:,:,k);
-        gmm.cov(:,:,k) = gmm.cov(:,:,k) + km(k) * (dm' * dm);        
-        [T p] = cholcov(gmm.cov(:,:,k));
-        assert(p == 0, 'gmm.cov(:,:,k) was not PD!');
-    end            
-    
-    %% Posterior predictive
-    % Murphy (228)    
-    pred_dof  = gmm.dof - D + 1;
-    coef = (gmm.scale + 1) ./ (gmm.scale .* pred_dof);
-    for k = 1:gmm.K        
-        pred_cov(:,:,k) = coef(k) * gmm.cov(:,:,k);
-    end
-    
-    %% Z          
-    
-    % We will need a likelihood for each sample and each class, so
-    % precompute them here.
-    x_like = zeros(N, gmm.K);
-
-    % Class 1 is background.     
-    x_like(:,1) = gmm.background_like(gmm, X);
-    assert(all(x_like(:,1) > 0));
-    % Precompute likelihood for every point for every class!!!
-    % That means you don't check idxs = gmm.s_z == k; idiot.
-    
-    for k = 2:gmm.K                
-        mvtparams   = make_mvt(gmm.mean(k,:), pred_cov(:,:,k), pred_dof(k));
-        x_like(:,k) = fast_mvtpdf(mvtparams, X);                       
-    end        
-    
-    % Now, sample
+    %% Sample
     gmm.loglike = 0;
     idxs = randperm(N);
     for nn = 1:N
         n = idxs(nn);
-        k = gmm.s_z(n);
-        % Temporarily remove ourselves
-        gmm.n(k) = gmm.n(k) - 1;
-        
-        % Yu (4.11)
-        z_prior = (gmm.n + gmm.prior_mix / gmm.K) ./ (N + gmm.prior_mix - 1);        
+        k = gmm.s_z(n);                
 
-        % Yu (4.14)        
-        z_pdf   = z_prior' .* x_like(n,:);
+        if k > 0        
+            % If we belong to a cluster, temporarily remove ourselves
+            gmm.s_z(n) = 0;
+            gmm.n(k)   = gmm.n(k) - 1;
+            if gmm.n(k) > 0
+                gmm = gmm_recompute_cluster(gmm, X, k);
+            else
+                % Radford Neal says to keep the old parameters. To
+                % implement later.                
+                gmm.empty_clusters = [gmm.empty_clusters k];    
+                gmm.K = gmm.K - 1;
+            end            
+        end
+        
+        nzidxs = gmm.n > 0;
+        assert(sum(nzidxs) == gmm.K, 'gmm.K does not track # of nonzero classes');
+        
+        % Neal (3.7); Algorithm 3        
+        
+        % Compute likelihood for the Dirichlet part. The gmm.n accounts for
+        % the existing classes and the gmm.prior_conc scalar accounts for
+        % the inchoate classes.
+        z_prior = [ gmm.n(nzidxs) ; gmm.prior_conc ] ./ (sum(gmm.n) - 1 + gmm.prior_conc);
+        
+        % Compute the posterior predictive likelihoods with ourselves
+        % removed, for each of the existing classes.        
+        %[x_like, gmm] = gmm_mvnw_posterior_pred(gmm, X, n);
+        
+        % We've precomputed our new-class likelihoods, so augment here.                
+        % Combine the Dirichlet and Gaussian parts.
+        x_like = [ gmm.x_like(n,nzidxs) gmm.new_like(n) ];
+        z_pdf  = z_prior' .* x_like;        
                 
         % Unnormalized inverse cdf sampling        
         z_cdf = cumsum(z_pdf);        
-        k_new = find(z_cdf > z_cdf(end)*rand(1), 1);                
+        ik_new = find(z_cdf > z_cdf(end)*rand(1), 1);                      
+        gmm.loglike = gmm.loglike + log(z_pdf(ik_new));
         
-        gmm.loglike = gmm.loglike + log(z_pdf(k_new));
+        % Recover the true class index
+        if ik_new <= gmm.K % if we picked an existing cluster
+            knz = find(nzidxs);
+            k_new = knz(ik_new);            
+        else
+            assert(~isempty(gmm.empty_clusters), 'no free clusters left!');
+            % Assign k_new to the next empty cluster
+            k_new = gmm.empty_clusters(1);
+            gmm.empty_clusters(1) = [];            
+            gmm.K = gmm.K + 1;
+        end
+        
         gmm.s_z(n) = k_new;
-        gmm.n(k_new) = gmm.n(k_new) + 1;                
-    end        
-
+        gmm.n(k_new) = gmm.n(k_new) + 1;         
+                        
+        % Officially add ourselves to the cluster
+        %gmm = add_to_cluster(gmm, X, n, k_new);
+        gmm = gmm_recompute_cluster(gmm, X, k_new);
+        
+    end
 end

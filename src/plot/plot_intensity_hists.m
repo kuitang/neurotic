@@ -13,13 +13,15 @@ function [ h ] = plot_intensity_hists( mm, X )
         
         % GMM only. TODO: Generalize the parametric plotter.
         if k > 1
-            subplot(2,mm.K,mm.K + k);        
-            ezplot(@(x) normpdf(x, mm.mean(k,3), sqrt(mm.cov(3,3,k))), linspace(0,1));
+            subplot(2,mm.K,mm.K + k);
+            pred_sd = sqrt(mm.pred_cov(3,3,k));
+            pdf = @(x) tpdf( (x - mm.mean(k,3)) / pred_sd, mm.pred_dof(k) );
+            ezplot(pdf, 0, 1);
             title(['fitted m = ' num2str(mm.mean(k,3), 2) ...
-                   ' sd = ' num2str(sqrt(mm.cov(3,3,k)), 2)]);
+                   ' sd = ' num2str(pred_sd), 2]);
         end
         
-        mm.cov
+        mm.pred_cov
         
     end
         
