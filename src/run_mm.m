@@ -12,6 +12,9 @@ function [ samples ] = run_mm(iter_f, X, img, mm, niters, burn_in, sample_freq, 
     mm.pred_mvtparams = cell(mm.Kmax, 1);
     mm.pred_x_like    = zeros(N, mm.Kmax);
     
+    % Background likelihood
+    mm.pred_x_like(:,1) = 1/N * mm.background_pdf(X(:,3));
+    
     samples = [];
     loglike = zeros(niters, 1);
     nz_idxs = mm.s_z > 0;    

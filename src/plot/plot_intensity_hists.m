@@ -3,7 +3,7 @@ function [ h ] = plot_intensity_hists( mm, X )
     h = mm.h_diagnostic;            
     
     for kk = 1:mm.K        
-        k = gmm.k_idx(kk);
+        k = mm.k_idx(kk);
         subplot(2,mm.K,k);
         idxs = mm.s_z == k;
         x = X(idxs,3);
@@ -20,9 +20,7 @@ function [ h ] = plot_intensity_hists( mm, X )
             ezplot(pdf, 0, 1);
             title(['fitted m = ' num2str(mm.mean(k,3), 2) ...
                    ' sd = ' num2str(pred_sd), 2]);
-        end
-        
-        mm.pred_cov
+        end                
         
     end
         

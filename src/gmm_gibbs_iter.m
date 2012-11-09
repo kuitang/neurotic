@@ -41,6 +41,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
             if gmm.n(k) > 0
                 gmm = gmm_recompute_cluster(gmm, X, k);
             else
+                assert(0, 'verboten');
                 % Radford Neal says to keep the old parameters. To
                 % implement later.                
                 gmm.empty_clusters = [gmm.empty_clusters k];    
@@ -59,6 +60,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         % the existing classes and the gmm.prior_conc scalar accounts for
         % the inchoate classes.
         z_prior = gmm.n(nzidxs) + (gmm.prior_conc / gmm.K) ./ (sum(gmm.n) - 1 + gmm.prior_conc);
+        assert(all(z_prior > 0), 'prior has zeros!');
         % z_prior = [ gmm.n(nzidxs) ; gmm.prior_conc ] ./ (sum(gmm.n) - 1 + gmm.prior_conc);
         
         % Compute the posterior predictive likelihoods with ourselves
@@ -68,6 +70,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         % We've precomputed our new-class likelihoods, so augment here.                
         % Combine the Dirichlet and Gaussian parts.
         x_like = gmm.pred_x_like(n,nzidxs);
+        assert(all(x_like > 0), 'x_like has zeros!');
         z_pdf  = z_prior .* x_like';        
                 
         % Unnormalized inverse cdf sampling        
