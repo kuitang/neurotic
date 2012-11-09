@@ -32,13 +32,9 @@ function [ gmm ] = gmm_recompute_cluster( gmm, X, k )
     %% Posterior predictive
     % Murphy (228)
     gmm.pred_dof(k) = gmm.dof(k) - D + 1;
-    gmm.pred_cov(:,:,k) = (gmm.scale(k) + 1) ./ (gmm.scale(k) .* gmm.pred_dof(k)) * gmm.cov(:,:,k);            
-    
-    %% Precompute likelihoods
-    % We will need a likelihood for each sample and each class, so
-    % precompute them here.    
-    mvtparams       = make_mvt(gmm.mean(k,:), gmm.pred_cov(:,:,k), gmm.pred_dof(k));
-    gmm.x_like(:,k) = fast_mvtpdf(mvtparams, X);
+    gmm.pred_cov(:,:,k) = (gmm.scale(k) + 1) ./ (gmm.scale(k) .* gmm.pred_dof(k)) * gmm.cov(:,:,k);                
 
+    gmm.pred_mvtparams{k} = make_mvt(gmm.mean(k,:), gmm.pred_cov(:,:,k), gmm.pred_dof(k));
+    gmm.pred_x_like(:,k)  = fast_mvtpdf(gmm.pred_mvtparams{k}, X);
 end
 

@@ -7,7 +7,7 @@ function [ gmm ] = make_gmm_prior( X )
     % So TINY gamma.
     % Got the settings from this Wikipedia page..    
     gmm = struct('K', 6, ... % To begin, only the background class.
-                 'Kmax', 500, ....
+                 'Kmax', 1000, ....
                  'N', N, ...
                  'nX', nX, ...
                  'nY', nY, ...
@@ -26,7 +26,7 @@ function [ gmm ] = make_gmm_prior( X )
     v_intensity = gmm.prior_cov(3,3);
     gmm.prior_cov(3,:) = zeros(3, 1);
     gmm.prior_cov(:,3) = zeros(1, 3);
-    gmm.prior_cov(3,3) = 0.1 * v_intensity;    
+    gmm.prior_cov(3,3) = 0.5 * v_intensity;    
     
     % Weaker Dirichlet prior (\sum \alpha_k = 1)
 %     gmm.prior_mix = zeros(K, 1);
@@ -35,7 +35,7 @@ function [ gmm ] = make_gmm_prior( X )
 %     
 %     gmm.prior_mix = 100 * gmm.prior_mix;    
        
-    gmm.background_pdf = make_sigmoid_pdf(0.5, 30);        
+    gmm.background_pdf = make_sigmoid_pdf(0.4, 50);        
     
     gmm.s_z = kmeans(X, gmm.K - 1);
     % shift up
@@ -48,7 +48,7 @@ function [ gmm ] = make_gmm_prior( X )
     gmm.h_diagnostic = figure;
     set(gmm.h_diagnostic, 'Units', 'normalized', 'Position', ...
         [0 0.7 1 0.4]);
-    %gmm.plot_diagnostic = @plot_intensity_hists;
+    gmm.plot_diagnostic = @plot_intensity_hists;
     
     % Initialize with k-means, but don't set background
     % Only valid if each feature is Gaussian!    

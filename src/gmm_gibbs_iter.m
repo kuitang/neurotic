@@ -23,16 +23,14 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
     [N D] = size(X);
     
     % Sanity checks    
-    %assert(sum(gmm.n) == N);        
-
-    % Class 1 is background.
-    gmm.x_like(:,1) = 1/gmm.N * gmm.background_pdf(X(:,3));
-    %assert(all(x_like(:,1) > 0));    
+    %assert(sum(gmm.n) == N);
     
     %% Sample
     gmm.loglike = 0;
     idxs = randperm(N);
     for nn = 1:N
+        [gmm.k_idx, gmm.k_invidx] = translate_k(gmm);
+        assert(~isempty(gmm.pred_mvtparams{2}));
         n = idxs(nn);
         k = gmm.s_z(n);                
 
@@ -50,6 +48,8 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
             end            
         end
         
+        assert(~isempty(gmm.pred_mvtparams{2}));
+
         nzidxs = gmm.n > 0;
         assert(sum(nzidxs) == gmm.K, 'gmm.K does not track # of nonzero classes');
         
@@ -66,8 +66,8 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         
         % We've precomputed our new-class likelihoods, so augment here.                
         % Combine the Dirichlet and Gaussian parts.
-        x_like = [ gmm.x_like(n,nzidxs) gmm.new_like(n) ];
-        z_pdf  = z_prior' .* x_like;        
+        x_like = [ gmm.pred_x_like(n,nzidxs) gmm.new_like(n) ];
+        z_pdf  = z_prior .* x_like';        
                 
         % Unnormalized inverse cdf sampling        
         z_cdf = cumsum(z_pdf);        
@@ -87,11 +87,10 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         end
         
         gmm.s_z(n) = k_new;
-        gmm.n(k_new) = gmm.n(k_new) + 1;         
+        gmm.n(k_new) = gmm.n(k_new) + 1;                
                         
         % Officially add ourselves to the cluster
         %gmm = add_to_cluster(gmm, X, n, k_new);
-        gmm = gmm_recompute_cluster(gmm, X, k_new);
-        
+        gmm = gmm_recompute_cluster(gmm, X, k_new);        
     end
 end

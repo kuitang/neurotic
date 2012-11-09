@@ -2,7 +2,16 @@ function [ samples ] = run_mm(iter_f, X, img, mm, niters, burn_in, sample_freq, 
     
     [N, D] = size(X);
     
-    % Initialize
+    % Parameters
+    mm.mean = zeros(mm.Kmax, D);
+    mm.cov  = zeros(D, D, mm.Kmax);
+    mm.dof  = zeros(mm.Kmax, 1);
+    mm.scale = zeros(mm.Kmax, 1);
+    mm.pred_dof = zeros(mm.Kmax, 1);
+    mm.pred_cov = zeros(D, D, mm.Kmax);
+    mm.pred_mvtparams = cell(mm.Kmax, 1);
+    mm.pred_x_like    = zeros(N, mm.Kmax);
+    
     samples = [];
     loglike = zeros(niters, 1);
     nz_idxs = mm.s_z > 0;    
@@ -15,20 +24,12 @@ function [ samples ] = run_mm(iter_f, X, img, mm, niters, burn_in, sample_freq, 
     mm.empty_clusters = (length(mm.n) + 1):mm.Kmax;
     remain = mm.Kmax - length(mm.n);
     mm.n = [ mm.n ; zeros(remain, 1) ];            
-    
-    % Parameters
-    mm.mean = zeros(mm.Kmax, D);
-    mm.cov  = zeros(D, D, mm.Kmax);
-    mm.dof  = zeros(mm.Kmax, 1);
-    mm.scale = zeros(mm.Kmax, 1);
-    mm.pred_dof = zeros(mm.Kmax, 1);
-    mm.pred_cov = zeros(D, D, mm.Kmax);
-    mm.x_like   = zeros(N, mm.Kmax);
+
     
     mm.new_like = zeros(N, 1);
     for n = 1:N
         mm.new_like(n,:) = gmm_one_sample_posterior_like(mm, X(n,:));
-    end 
+    end         
     
     % The parameter mm.background_pdf works on scalars or vectors. We will
     % define mm.background_like to work on X.

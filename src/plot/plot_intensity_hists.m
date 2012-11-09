@@ -1,8 +1,9 @@
 function [ h ] = plot_intensity_hists( mm, X )
 % Plot intensity histogram for each class.
-    h = mm.h_diagnostic;    
+    h = mm.h_diagnostic;            
     
-    for k = 1:mm.K        
+    for kk = 1:mm.K        
+        k = gmm.k_idx(kk);
         subplot(2,mm.K,k);
         idxs = mm.s_z == k;
         x = X(idxs,3);
