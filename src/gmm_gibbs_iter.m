@@ -58,7 +58,8 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         % Compute likelihood for the Dirichlet part. The gmm.n accounts for
         % the existing classes and the gmm.prior_conc scalar accounts for
         % the inchoate classes.
-        z_prior = [ gmm.n(nzidxs) ; gmm.prior_conc ] ./ (sum(gmm.n) - 1 + gmm.prior_conc);
+        z_prior = gmm.n(nzidxs) + (gmm.prior_conc / gmm.K) ./ (sum(gmm.n) - 1 + gmm.prior_conc);
+        % z_prior = [ gmm.n(nzidxs) ; gmm.prior_conc ] ./ (sum(gmm.n) - 1 + gmm.prior_conc);
         
         % Compute the posterior predictive likelihoods with ourselves
         % removed, for each of the existing classes.        
@@ -66,12 +67,13 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
         
         % We've precomputed our new-class likelihoods, so augment here.                
         % Combine the Dirichlet and Gaussian parts.
-        x_like = [ gmm.pred_x_like(n,nzidxs) gmm.new_like(n) ];
+        x_like = gmm.pred_x_like(n,nzidxs);
         z_pdf  = z_prior .* x_like';        
                 
         % Unnormalized inverse cdf sampling        
         z_cdf = cumsum(z_pdf);        
-        ik_new = find(z_cdf > z_cdf(end)*rand(1), 1);                      
+        ik_new = find(z_cdf > z_cdf(end)*rand(1), 1);                
+        
         gmm.loglike = gmm.loglike + log(z_pdf(ik_new));
         
         % Recover the true class index
@@ -79,6 +81,7 @@ function [ gmm ] = gmm_gibbs_iter( gmm, X )
             knz = find(nzidxs);
             k_new = knz(ik_new);            
         else
+            assert(0, 'impossible! working on fixed cluster size now');
             assert(~isempty(gmm.empty_clusters), 'no free clusters left!');
             % Assign k_new to the next empty cluster
             k_new = gmm.empty_clusters(1);

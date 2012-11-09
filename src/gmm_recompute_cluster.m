@@ -18,7 +18,7 @@ function [ gmm ] = gmm_recompute_cluster( gmm, X, k )
     
     gmm.scale(k)  = gmm.prior_scale + gmm.n(k);
     gmm.mean(k,:) = gmm.prior_scale .* gmm.prior_mean + Nk * sample_mean;
-    gmm.mean(k,:) = gmm.mean(k) / gmm.scale(k);
+    gmm.mean(k,:) = gmm.mean(k,:) / gmm.scale(k);
     
     gmm.dof(k) = gmm.prior_dof + gmm.n(k);
     
@@ -36,5 +36,6 @@ function [ gmm ] = gmm_recompute_cluster( gmm, X, k )
 
     gmm.pred_mvtparams{k} = make_mvt(gmm.mean(k,:), gmm.pred_cov(:,:,k), gmm.pred_dof(k));
     gmm.pred_x_like(:,k)  = fast_mvtpdf(gmm.pred_mvtparams{k}, X);
+    assert(all(gmm.pred_x_like(:,k) > 0));
 end
 
