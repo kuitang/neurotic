@@ -1,5 +1,5 @@
 addpath('.');
-addpath('./mcmc');
+addpath('./prob');
 addpath('./experiment');
 addpath('./plot');
 addpath('./util');
