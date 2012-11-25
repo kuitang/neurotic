@@ -2,6 +2,9 @@
 data/*
 src/*.mat
 
+# Secrets
+*secret*
+
 # MATLAB
 *~
 

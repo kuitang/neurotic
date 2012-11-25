@@ -1,5 +1,5 @@
 function [ up ] = beta_posterior_updf( prior_params, s, m, x, logp )
-% Posterior of the beta_prior_updf distribution.
+% (Unnormalized) Posterior of the beta_prior_updf distribution.
 % Bouguila (19) and (20). Modified to always return s > 1.
 %
 % Used as a subroutine in Beta mixture models. Class labels don't exist
