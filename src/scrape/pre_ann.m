@@ -1,4 +1,5 @@
-%% Download annotations and image slices. See
+%% Prepare queries for annotations for slice annotaitons.
+%
 % [1] http://hssl.cs.jhu.edu/wiki/doku.php?id=randal:hssl:research:brain:annotation_service
 % [2] http://hssl.cs.jhu.edu/wiki/doku.php?id=randal:hssl:research:brain:ramon_hdf5_interfaces
 % [3] http://hssl.cs.jhu.edu/wiki/doku.php?id=randal:hssl:research:brain:ramon_hdf5_ontology
@@ -43,25 +44,29 @@ slice_range   = h5read(F, '/DATASET/SLICERANGE');
 
 %% Brute force
 % This list is discovered empirically. i.e. watching which requests fail.
-topid = 6075;
+topid = 6075
 exclude = [2146 2208 2216 2218];
 
 annoids = 1:topid;
 annoids(exclude) = [];
 
 % Chunk our requests
-chunksz = 100;
+chunksz = 500;
 parts = partition_rem(annoids', chunksz);
 
-parfor i = 1:length(parts)
+for i = 1:length(parts)
     % We made annoids column vectors for partitioning. But the remote
     % interface can only deal with row vectors, so we tranpose back.
     annoids_part = parts{i}';
+       
+    first = num2str(annoids_part(1));
+    last  = num2str(annoids_part(end));
+    suffix = [first '_' last '.hd5'];
     
-    outfile = [DATA_PREFIX '/kat11ann_' num2str(annoids_part(1)) '_' num2str(annoids_part(end)) '.h5'];
+    query_file = ['queries/kat11_q_' suffix];
     
-    dl_annotations(outfile, KBASE, annoids_part, proj_res);    
-    h5info(outfile, ['/' num2str(annoids_part(1))]);
+    h5create(query_file, '/ANNOIDS', size(annoids), 'Datatype', 'int32');
+    h5write(query_file, '/ANNOIDS', annoids);
 end
 
 % %% Use this code to probe ANNOIDS
