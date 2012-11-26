@@ -1,6 +1,8 @@
 # Data
 data/*
 src/*.mat
+*.hd5
+*.h5
 
 # Secrets
 *secret*
