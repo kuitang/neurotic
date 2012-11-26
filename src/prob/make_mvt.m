@@ -2,9 +2,10 @@ function [ mvtparams ] = make_mvt( mean_, S, dof )
 %MAKE_MVT mean_ is N x D
     [N, D] = size(mean_);
     assert(N == 1);
+    assert(dof > 0);
     
-    [mvtparams.istdev, t] = cholcov(inv(S));        
-    assert(t == 0, 'S was not psd!');
+    [mvtparams.istdev, n_neg_eigs] = cholcov(inv(S));        
+    assert(n_neg_eigs == 0, 'S was not psd!');
     mvtparams.mean = mean_;
     mvtparams.dof = dof;
 
@@ -16,7 +17,7 @@ function [ mvtparams ] = make_mvt( mean_, S, dof )
 %     g = gamma((dof + D) / 2) / gamma(dof / 2);
 
     log_s = log(det(mvtparams.istdev));
-    assert(abs(log_s - log(sqrt(det(inv(S))))) < 1e-8);
+%    assert(abs(log_s - log(sqrt(det(inv(S))))) < 1e-8);
     log_d = -D/2 * log(dof * pi);
     log_g = gammaln((dof + D) / 2) - gammaln(dof / 2);
     
