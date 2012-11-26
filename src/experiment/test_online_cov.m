@@ -3,7 +3,7 @@ function test_online_cov(N, D, tol)
     X = rand(N, D);
 
     mu = 0;
-    Sigma = eye(D);
+    Sigma = zeros(D);
     T = 0;
 
     % Addition: Update covariance (depends on current mean), then mean.

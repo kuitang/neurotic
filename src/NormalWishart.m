@@ -73,8 +73,10 @@ classdef NormalWishart < matlab.mixin.Copyable
             % Special case for empty data
             if o.data_n == 0
                 o.data_mean = zeros(1, o.dim);
-                o.data_cov = eye(o.dim);
-            end
+                o.data_cov = zeros(o.dim);
+            elseif o.data_n == 1
+                o.data_cov = zeros(o.dim);
+            end                        
             
             o.fit_common();
         end        
