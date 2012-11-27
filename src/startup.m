@@ -1,4 +1,4 @@
-addpath(fullfile(pwd, '.'));
+addpath(pwd());
 addpath(fullfile(pwd, 'prob'));
 addpath(fullfile(pwd, 'experiment'));
 addpath(fullfile(pwd, 'plot'));

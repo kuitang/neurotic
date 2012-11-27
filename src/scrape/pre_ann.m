@@ -51,7 +51,8 @@ annoids = 1:topid;
 annoids(exclude) = [];
 
 % Chunk our requests
-chunksz = 500;
+% The server will crash with chunksz = 500. 100 is the highest known good.
+chunksz = 100;
 parts = partition_rem(annoids', chunksz);
 
 for i = 1:length(parts)
