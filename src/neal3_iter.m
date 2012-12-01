@@ -10,7 +10,7 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
     prior = copy(mdp.prior);
     prior.fit([]);
     prior_pred_like = prior.pred_like(mdp.X); % col vector
-    bg_pred_like    = mdp.background_like(mdp.X);
+%    bg_pred_like    = mdp.background_like(mdp.X);
     
     ll = 0;
     for n = 1:mdp.N
@@ -22,13 +22,10 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
         
         z_pdf = [ mdp.cluster_counts ; mdp.concentration ] ./ ...
                     ( mdp.N - 1 + mdp.concentration );
-        x_pdf  = zeros(size(z_pdf));
-        % Background
-        x_pdf(1)   = bg_pred_like(n);
+        x_pdf  = zeros(size(z_pdf));        
         % New cluster
-        x_pdf(end) = prior_pred_like(n);
-        % Rest
-        for k = 2:mdp.n_clusters
+        x_pdf(end) = prior_pred_like(n);        
+        for k = 1:mdp.n_clusters
             % Only works for the conjugate case            
             x_pdf(k) = mdp.cluster_likes{k}.pred_like_scalar(mdp.X(n,:));
         end
@@ -42,6 +39,7 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
         
         % DESTROY DEAD CLUSTERS!
         if mdp.cluster_counts(k_old) == 0
+            assert(k_old ~= 1, 'uh oh, killing the background class!');
             mdp.kill_cluster(k_old);
         end
         

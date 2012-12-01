@@ -14,20 +14,22 @@ classdef GammaGamma < OnlineDistribution
 %     1970: 27-31.
     
     properties
+        dims;
         shape, prior_shape, prior_rate;
         post_shape, post_rate;
         data_n;        
     end
     
     methods
-        function o = GammaGamma(shape, prior_shape, prior_rate)            
+        function o = GammaGamma(shape, prior_shape, prior_rate)
+            % dims - the dims of the data to capture
             if nargin == 1 % copy constructor
                 % REMEMBER ME!!! Standard trick to copy fields. 
                 fns = properties(prior_mean_or_rhs);
                 for i=1:length(fns)
                     o.(fns{i}) = rhs.(fns{i});
                 end                
-            end
+            end            
             o.data_n = 0;
             o.shape = shape;
             o.prior_shape = prior_shape;
@@ -67,6 +69,10 @@ classdef GammaGamma < OnlineDistribution
             log_bot = betaln(o.shape, o.post_shape) + (o.shape + o.post_shape) * log(o.post_rate + X);
             
             p = exp(log_top - log_bot);
+        end
+        
+        function p = pred_like_scalar(o, x)
+            p = o.pred_like(x);
         end
     
     end

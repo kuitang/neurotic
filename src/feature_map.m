@@ -12,5 +12,8 @@ function [ PHI ] = feature_map( img )
             n = n+1;
         end
     end
+    
+    % Censor zero intensities (causes some problems for Gamma)
+    PHI(:,3) = max(eps, PHI(:,3));
 end
 

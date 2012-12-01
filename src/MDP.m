@@ -24,18 +24,16 @@ classdef MDP < handle
         n_clusters
         % Summary statistics
         cluster_counts
-        
-        background_like
+                
         cluster_likes
     end
     
     methods
-        function o = MDP(concentration, X, cluster_assigns, background_like, prior)
+        function o = MDP(concentration, X, cluster_assigns, prior)
 % cluster_assigns must be all specified, for now.            
             [o.N, o.data_dim] = size(X);
             o.X = X;
-            o.concentration = concentration;            
-            o.background_like = background_like;        
+            o.concentration = concentration;                        
             o.prior = prior;
             
             % Initialize our model with cluster_assigns
@@ -45,24 +43,7 @@ classdef MDP < handle
             assert(sum(nzidxs) == o.N, 'uninitialized start not implemented');
             o.cluster_counts = accumarray(cluster_assigns(nzidxs), ones(o.N, 1));            
             
-            % TODO: Perhaps remove the restriction
-            
-                        
-            if o.n_clusters <= 1
-                % Always create a "dummy" cluster entry to account for
-                % background
-                o.cluster_likes = cell(1, 1);
-            else
-                o.cluster_likes = cell(o.n_clusters, 1);
-            end
-            
-            if isa(background_like, 'matlab.mixin.Copyable')
-                o.cluster_likes{1} = copy(background_like);
-            else
-                o.cluster_likes{1} = background_like;
-            end
-            
-            for k = 2:o.n_clusters
+            for k = 1:o.n_clusters
                 idxs = cluster_assigns == k;
                 
                 o.cluster_likes{k} = copy(prior);
@@ -79,12 +60,10 @@ classdef MDP < handle
 %
 % TODO: Online updates (should integrate with remove_point and
 % assign_to_new
-
-            % If we are not background...
-            if k > 1
-                idxs = o.cluster_assigns == k;
-                o.cluster_likes{k}.fit(o.X(idxs,:));
-            end
+            
+            idxs = o.cluster_assigns == k;
+            o.cluster_likes{k}.fit(o.X(idxs,:));
+            %end
         end
         
         function k_old = remove_point(o, n)
@@ -92,12 +71,8 @@ classdef MDP < handle
             k_old = o.cluster_assigns(n);
             o.cluster_counts(k_old) = o.cluster_counts(k_old) - 1;
             o.cluster_assigns(n) = 0;
-            
-            % TODO: Online updates.
-            if k_old > 1
-                o.cluster_likes{k_old}.remove_point(o.X(n,:));
-            end
-            %o.refit(k_old);
+                        
+            o.cluster_likes{k_old}.remove_point(o.X(n,:));
         end
         
         function assign(o, n, k)
@@ -111,11 +86,8 @@ classdef MDP < handle
                 dist.fit(o.X(n,:));
             else
                 % Existing
-                o.assign_to_existing(n, k);
-                if k > 1
-                    o.cluster_likes{k}.add_point(o.X(n,:));
-                end
-                %o.refit(k);
+                o.assign_to_existing(n, k);                
+                o.cluster_likes{k}.add_point(o.X(n,:));
             end                            
         end
         
@@ -129,7 +101,7 @@ classdef MDP < handle
             % Need to do this to prevent collapsindbg heterogenous members
             % (otherwise, the background class disappears and you only get
             % the NormalWisharts)
-            o.cluster_likes =  [ o.cluster_likes ; 1 ];
+            o.cluster_likes =  [ o.cluster_likes 1 ];
             o.cluster_likes{end} = cluster_like;            
             o.cluster_assigns(n) = o.n_clusters;
             

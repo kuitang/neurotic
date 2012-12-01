@@ -15,9 +15,7 @@ function [ mdp ] = make_mdp_prior( X )
     prior_dof = 5;
     prior_n   = 0.5;
     
-    concentration = 1;
-    
-    background_like = make_sigmoid_pdf(0.4, 50);    
+    concentration = 1;        
     
     %% Initialize cluster assignments
     % Wood: assign them uniformly at random
@@ -25,6 +23,11 @@ function [ mdp ] = make_mdp_prior( X )
     
     %% Construct objects
     mvn_prior = NormalWishart(prior_mean, prior_cov, prior_dof, prior_n);
-    mdp = MDP(concentration, X, cluster_assigns, background_like, mvn_prior);  
+    mdp = MDP(concentration, X, cluster_assigns, mvn_prior);
+    
+    % Add the background class
+    % TODO: Change or sensitivity analysis!
+    mdp.cluster_likes{1} = ProductDistribution(1, 2, Uniform(size(X, 1)), 3, 3, GammaGamma(1, 6, 2));
+    mdp.refit(1);
         
 end
