@@ -132,9 +132,7 @@ classdef MDP < matlab.mixin.Copyable
 
         function assign_to_existing(o, n, k)
 % This DOES NOT update posteriors! You have to do that yourself.
-% If you're Gibbs sampling, make sure to call REMOVE first!
-
-            assert(k > 0 && k <= o.n_clusters, 'k must exist!');
+% If you're Gibbs sampling, make sure to call REMOVE first!            
                         
             o.cluster_counts(k) = o.cluster_counts(k) + 1;
             o.cluster_assigns(n) = k;

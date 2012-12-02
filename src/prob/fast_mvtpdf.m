@@ -1,12 +1,10 @@
-function [ p ] = fast_mvtpdf( mvtparams, X )
+function [ p ] = fast_mvtpdf( X, mvtparams )
     % We scale by both mean and covariance, which MATLAB
     % does not.    
-    dX = bsxfun(@minus, X, mvtparams.mean);
-    dX = dX * mvtparams.istdev'; % MATLAB's chol is L'L!
+    dX = bsxfun(@minus, X, mvtparams.mean);        
+    Z = linsolve(mvtparams.cov_chol, dX', mvtparams.opts);
     
-    %p = mvtparams.Z * (1 + sum(dx.^2) / mvtparams.dof) ^ mvtparams.pow;
-    log_p = mvtparams.logZ + mvtparams.pow * log((1 + sum(dX .* dX, 2) / mvtparams.dof));
-    %assert(abs(p - exp(log_p)) < 10e-8);
-    %assert(p > 0);
+    log_p = mvtparams.logZ + mvtparams.pow * log((1 + sum(Z .* Z, 1) / mvtparams.dof))';
+    
     p = exp(log_p);
 end

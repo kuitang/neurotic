@@ -102,7 +102,7 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
             pred_cov = (o.post_n + 1) / (o.post_n * o.pred_dof) * post_cov;
             
             o.pred_chol = chol(pred_cov);
-            o.pred_mvtparams = make_mvt(o.post_mean, o.pred_chol, o.pred_dof);
+            o.pred_mvtparams = make_mvt(o.pred_mvtparams, o.post_mean, o.pred_chol, o.pred_dof);
         end        
         
         % Online updates. Currently only online updates for mean and cov.
@@ -128,7 +128,7 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
             c = (o.post_n + 1) / (o.post_n * o.pred_dof);
             o.pred_chol = sqrt(c) * o.post_chol;
             
-            o.pred_mvtparams = make_mvt(o.post_mean, o.pred_chol, o.pred_dof);
+            o.pred_mvtparams = make_mvt(o.pred_mvtparams, o.post_mean, o.pred_chol, o.pred_dof);
         end
         
         function remove_point(o, x)
@@ -160,7 +160,7 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
                 c = (o.post_n + 1) / (o.post_n * o.pred_dof);
                 o.pred_chol = sqrt(c) * o.post_chol;
                 
-                o.pred_mvtparams = make_mvt(o.post_mean, o.pred_chol, o.pred_dof);
+                o.pred_mvtparams = make_mvt(o.pred_mvtparams, o.post_mean, o.pred_chol, o.pred_dof);
             end
         end
         
