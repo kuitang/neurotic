@@ -10,10 +10,9 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
     prior = copy(mdp.prior);
     prior.fit([]);
     prior_pred_like = prior.pred_like(mdp.X); % col vector
-%    bg_pred_like    = mdp.background_like(mdp.X);
     
     ll = 0;
-    for n = 1:mdp.N
+    for n = randperm(mdp.N)
         k_old = mdp.remove_point(n);
         % Removed a point, so we must refit the posterior
         %

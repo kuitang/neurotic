@@ -21,16 +21,14 @@ function [ samples ] = run_mdp( iter_f, state, params, X, img, mdp, niters, burn
         rate     = mdp.N / itertime;
         
         fprintf(1, 'Iter %d: time = %0.2f; speed = %.2f; K = %d, change = %0.3f; loglike = %06.2f\n', ...
-                n, itertime, rate, mdp.n_clusters, change, ll);
-        mdp.cluster_counts'
+                n, itertime, rate, mdp.n_clusters, change, ll);        
 
         % Save the log-likelihood
         loglike(n) = ll;                
         
         if mod(n, sample_freq) == 0
-            plot_intensity_hists(hist_h, mdp, X);
-            drawnow;
-            plot_img(img_h, n, loglike, X, img, mdp);                       
+            plot_intensity_hists(hist_h, mdp, X);            
+            plot_img(img_h, n, loglike, X, img, mdp);   
             drawnow;
             
             if n > burn_in

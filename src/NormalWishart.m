@@ -5,15 +5,36 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
 % [1] Kevin Murphy, Conjugate Bayesian analysis of the Gaussian
 %     distribution, www.cs.ubc.ca/~murphyk/Papers/bayesGauss.pdf
 % [2] Andrew Gelman et al. Bayesian Data Analysis, Second Edition.
+% [3] Stéphane Ross et al, Bayesian Reinforcement Learning in Continuous POMDPs with
+%     Application to Robot Navigation, IEEE ICRA 2008
+% [4] M. H. DeGroot, Optimal Statistical Decisions. McGraw-Hill, 1970.
     
     properties
         prior_mean, prior_cov, prior_dof, prior_n, dim
-        data_mean, data_cov, data_n
-        post_mean, post_cov, post_dof, post_n
-        pred_mean, pred_cov, pred_dof, pred_n, pred_mvtparams               
+        data_n
+        
+        % No storing covariances; only their cholesky factors.
+        post_mean,      post_chol, post_dof, post_n
+        pred_mvtparams, pred_chol, pred_dof, pred_n
     end
     
+    properties (Dependent)
+        pred_mean, post_cov, pred_cov
+    end            
+    
     methods
+        function pm = get.pred_mean(o)
+            pm = o.post_mean;
+        end
+        
+        function poc = get.post_cov(o)
+            poc = (o.post_chol' * o.post_chol);
+        end
+        
+        function prc = get.pred_cov(o)
+            prc = (o.pred_chol' * o.pred_chol);
+        end
+        
         function o = NormalWishart(prior_mean_or_rhs, prior_cov, prior_dof, prior_n)
             if nargin == 1 % copy constructor
                 % REMEMBER ME!!! Standard trick to copy fields. 
@@ -21,40 +42,19 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
                 for i=1:length(fns)
                     o.(fns{i}) = rhs.(fns{i});
                 end
-            else
-                o.data_n = 0;
+            else                
                 o.prior_mean = prior_mean_or_rhs;
                 o.prior_cov  = prior_cov;
                 o.prior_dof  = prior_dof;
                 o.prior_n    = prior_n;
 
-                o.dim = size(prior_cov, 1);
-               
-                % Initializations for online updates
-                o.data_mean = zeros(1, o.dim);
-                o.data_cov = eye(o.dim);
+                o.dim = size(prior_cov, 1);               
+                
+                % IMPORTANT: Make the distribution ready for prediction and
+                % update
+                o.fit([]);
             end
-        end
-        
-        function fit_common(o)
-            % Murphy (222) to (226)
-            o.post_n    = o.prior_n   + o.data_n;
-            o.post_dof  = o.prior_dof + o.data_n;
-            o.post_mean = 1/o.post_n * (o.prior_n * o.prior_mean + o.data_n * o.data_mean);
-            
-            % A row vector
-            mean_diff = o.prior_mean - o.data_mean;
-            o.post_cov  = o.prior_cov + (o.data_n*o.data_cov) + ...
-                        (o.prior_n*o.data_n) / (o.prior_n + o.data_n) * (mean_diff'*mean_diff);
-            %[~, p] = cholcov(o.post_cov);
-            %assert(p == 0, 'o.posterior covariance was not PD!');
-            
-            % Murphy (228)
-            o.pred_mean = o.post_mean;
-            o.pred_dof = o.post_dof - o.dim + 1;            
-            o.pred_cov = (o.post_n + 1) / (o.post_n * o.pred_dof) * o.post_cov;
-            o.pred_mvtparams = make_mvt(o.pred_mean, o.pred_cov, o.pred_dof);
-        end
+        end                
         
         % All of the Bayesian update equations take constant time (wrt d).
         % Online updating really just updates the data covariance.
@@ -69,15 +69,15 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
             
             assert(o.data_n == 0 || dim == size(o.prior_cov, 1));            
 
-            o.data_mean = mean(X, 1);
-            o.data_cov  = cov(X, 1); 
+            data_mean = mean(X, 1);
+            data_cov  = cov(X, 1); 
             
             % Special case for empty data
             if o.data_n == 0
-                o.data_mean = zeros(1, o.dim);
-                o.data_cov = zeros(o.dim);
+                data_mean = zeros(1, o.dim);
+                data_cov = zeros(o.dim);
             elseif o.data_n == 1
-                o.data_cov = zeros(o.dim);
+                data_cov = zeros(o.dim);
             end                        
             
             % Unfortunately, MATLAB's method calls are too slow and we have
@@ -87,81 +87,80 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
             % Murphy (222) to (226)
             o.post_n    = o.prior_n   + o.data_n;
             o.post_dof  = o.prior_dof + o.data_n;
-            o.post_mean = 1/o.post_n * (o.prior_n * o.prior_mean + o.data_n * o.data_mean);
+            o.post_mean = 1/o.post_n * (o.prior_n * o.prior_mean + o.data_n * data_mean);
             
             % A row vector
-            mean_diff = o.prior_mean - o.data_mean;
-            o.post_cov  = o.prior_cov + (o.data_n*o.data_cov) + ...
+            mean_diff = o.prior_mean - data_mean;
+            post_cov  = o.prior_cov + (o.data_n*data_cov) + ...
                         (o.prior_n*o.data_n) / (o.prior_n + o.data_n) * (mean_diff'*mean_diff);
-            %[~, p] = cholcov(o.post_cov);
-            %assert(p == 0, 'o.posterior covariance was not PD!');
             
-            % Murphy (228)
-            o.pred_mean = o.post_mean;
+            % For the future rank-1 updates                        
+            o.post_chol = chol(post_cov);
+            
+            % Murphy (228)            
             o.pred_dof = o.post_dof - o.dim + 1;            
-            o.pred_cov = (o.post_n + 1) / (o.post_n * o.pred_dof) * o.post_cov;
-            o.pred_mvtparams = make_mvt(o.pred_mean, o.pred_cov, o.pred_dof);
+            pred_cov = (o.post_n + 1) / (o.post_n * o.pred_dof) * post_cov;
+            
+            o.pred_chol = chol(pred_cov);
+            o.pred_mvtparams = make_mvt(o.post_mean, o.pred_chol, o.pred_dof);
         end        
         
         % Online updates. Currently only online updates for mean and cov.
         % Eventually need to update mvtparams...
         function add_point(o, x)        
-            o.data_n = o.data_n + 1;     
-            dx = x - o.data_mean;
-            Delta = (o.data_n - 1) / o.data_n * (dx'*dx);
-            o.data_cov = ((o.data_n - 1)*o.data_cov + Delta) / o.data_n;
+            % Ross (6)
+            % We mutate in place, so ORDER MATTERS!
+            dx          = (o.post_mean - x)';
+            c           = sqrt(o.post_n / (o.post_n + 1));                                    
+            o.post_chol = cholupdate(o.post_chol, c * dx);
             
-            o.data_mean = o.data_mean + 1/o.data_n * dx;
+            o.post_mean = (o.post_n * o.post_mean + x) ./ (o.post_n + 1);            
             
-            % Murphy (222) to (226)
-            o.post_n    = o.prior_n   + o.data_n;
-            o.post_dof  = o.prior_dof + o.data_n;
-            o.post_mean = 1/o.post_n * (o.prior_n * o.prior_mean + o.data_n * o.data_mean);
-
-            % A row vector
-            mean_diff = o.prior_mean - o.data_mean;
-            o.post_cov  = o.prior_cov + (o.data_n*o.data_cov) + ...
-                        (o.prior_n*o.data_n) / (o.prior_n + o.data_n) * (mean_diff'*mean_diff);
-            %[~, p] = cholcov(o.post_cov);
-            %assert(p == 0, 'o.posterior covariance was not PD!');
-
-            % Murphy (228)
-            o.pred_mean = o.post_mean;
-            o.pred_dof = o.post_dof - o.dim + 1;            
-            o.pred_cov = (o.post_n + 1) / (o.post_n * o.pred_dof) * o.post_cov;
-            o.pred_mvtparams = make_mvt(o.pred_mean, o.pred_cov, o.pred_dof);            
+            o.post_n    = o.post_n + 1;
+            o.post_dof  = o.post_dof + 1;
+            o.data_n    = o.data_n + 1;
+                       
+            % Murphy (228) combined with Ross (6)
+            o.pred_dof  = o.pred_dof + 1;            
+            
+            % Note that if A = L'*L, then c^2 * A = (c*L)' * (c*L).
+            % So we square-root this coefficient.
+            c = (o.post_n + 1) / (o.post_n * o.pred_dof);
+            o.pred_chol = sqrt(c) * o.post_chol;
+            
+            o.pred_mvtparams = make_mvt(o.post_mean, o.pred_chol, o.pred_dof);
         end
         
         function remove_point(o, x)
             if o.data_n <= 1
                 o.fit([]);
-            else            
-                % Notebook pp 41 (TODO: add original reference)
-                o.data_mean = 1/(o.data_n - 1) * (o.data_n*o.data_mean - x);
+            else
+                % Downdates; solve for the inverses in Ross (6)
+                o.data_n    = o.data_n - 1;
+                o.post_dof  = o.post_dof - 1;
+                o.post_n    = o.post_n - 1;
                 
-                dx = x - o.data_mean;
-                Delta = (o.data_n - 1) / o.data_n * (dx'*dx);
-                o.data_cov = (o.data_n*o.data_cov - Delta) / (o.data_n - 1);
+                o.post_mean = ((o.post_n + 1) * o.post_mean - x) / o.post_n;                
                 
-                o.data_n = o.data_n - 1;
+                dx          = (o.post_mean - x)';
+                c           = sqrt(o.post_n / (o.post_n + 1));
+                o.post_chol = cholupdate(o.post_chol, c * dx, '-');                
                 
-                % Murphy (222) to (226)
-                o.post_n    = o.prior_n   + o.data_n;
-                o.post_dof  = o.prior_dof + o.data_n;
-                o.post_mean = 1/o.post_n * (o.prior_n * o.prior_mean + o.data_n * o.data_mean);
-
-                % A row vector
-                mean_diff = o.prior_mean - o.data_mean;
-                o.post_cov  = o.prior_cov + (o.data_n*o.data_cov) + ...
-                            (o.prior_n*o.data_n) / (o.prior_n + o.data_n) * (mean_diff'*mean_diff);
-                %[~, p] = cholcov(o.post_cov);
-                %assert(p == 0, 'o.posterior covariance was not PD!');
-
-                % Murphy (228)
-                o.pred_mean = o.post_mean;
-                o.pred_dof = o.post_dof - o.dim + 1;            
-                o.pred_cov = (o.post_n + 1) / (o.post_n * o.pred_dof) * o.post_cov;
-                o.pred_mvtparams = make_mvt(o.pred_mean, o.pred_cov, o.pred_dof);
+%                 svec = zeros(o.dim, 1);
+%                 cvec = zeros(o.dim, 1);
+%                 wvec = zeros(o.dim, 1);
+%                 choldnrk1({o.post_chol, [1 1 o.dim o.dim], 'U '}, ...
+%                           c * dx, cvec, svec, wvec);
+                
+                %assertElementsAlmostEqual(naive_post_chol, o.post_chol);
+                
+                
+                % Same Murphy's equations again                
+                o.pred_dof  = o.pred_dof - 1;
+                c = (o.post_n + 1) / (o.post_n * o.pred_dof);
+                o.pred_chol = sqrt(c) * o.post_chol;
+                
+                o.pred_mvtparams = make_mvt(o.post_mean, o.pred_chol, o.pred_dof);
             end
         end
         
@@ -171,11 +170,11 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
 % fields?
 %
 % Really need a distribution class.
-            p = fast_mvtpdf(o.pred_mvtparams, X);
+            p = fast_mvtpdf(X, o.pred_mvtparams);
         end
         
         function [p] = pred_like_scalar(o, x)
-            p = fast_mvtpdf_scalar(o.pred_mvtparams, x);
+            p = fast_mvtpdf_scalar(x, o.pred_mvtparams);
         end
         
         function [X] = sample_prior_pred(o, n)

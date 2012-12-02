@@ -12,6 +12,9 @@ function [ g ] = plot_point_overlay( img, mdp, X )
     
     overlay = zeros(nX, nY, 3);            
     
+    % Make the background black
+    c(1, :) = zeros(1, 3);
+    
     for n = 1:N
         x = X(n,1);
         y = X(n,2);
@@ -32,14 +35,20 @@ function [ g ] = plot_point_overlay( img, mdp, X )
         cl = mdp.cluster_likes{k};        
         mean_x = cl.pred_mean(1);
         mean_y = cl.pred_mean(2);
-                                
+                     
+        cc = c(k, :);
+        
         text(mean_x, mean_y, num2str(k), ...
-             'FontSize', 30, 'FontWeight', 'bold');
+             'FontSize', 30, ...
+             'FontWeight', 'bold', ...
+             'BackgroundColor', 'w', ...
+             'Color', cc);
         
         ee = error_ellipse(cl.pred_cov(1:2,1:2), cl.pred_mean(1:2), 'conf', 0.95);
-        set(ee, 'color', 'w', 'linewidth', 2);
+        set(ee, ...            
+            'Color', 'w', ...
+            'LineWidth', 2);        
     end    
     hold off  
-
 end
 

@@ -1,4 +1,4 @@
-classdef MDP < handle
+classdef MDP < matlab.mixin.Copyable
 %MDP Bookkeeping for Mixture of Dirichlet Process distribution. Use in
 % Gibbs algorithms.
 %
@@ -12,42 +12,62 @@ classdef MDP < handle
         concentration
         
         % Just storage
-        N
+        N = 0;
         data_dim
         X
         prior
         
         % N x 1 vector with range [0, num_clusters]. 0 represents
         % unassigned and 1 represents background.
-        cluster_assigns
+        cluster_assigns = [];
         % Number of currently active clusters
-        n_clusters
+        n_clusters = 0;
         % Summary statistics
-        cluster_counts
+        cluster_counts = [];
                 
-        cluster_likes
+        cluster_likes = cell(0);
     end
     
     methods
-        function o = MDP(concentration, X, cluster_assigns, prior)
-% cluster_assigns must be all specified, for now.            
-            [o.N, o.data_dim] = size(X);
-            o.X = X;
-            o.concentration = concentration;                        
-            o.prior = prior;
-            
-            % Initialize our model with cluster_assigns
-            o.cluster_assigns = cluster_assigns;            
-            nzidxs = cluster_assigns > 0;
-            o.n_clusters = max(cluster_assigns);
-            assert(sum(nzidxs) == o.N, 'uninitialized start not implemented');
-            o.cluster_counts = accumarray(cluster_assigns(nzidxs), ones(o.N, 1));            
-            
-            for k = 1:o.n_clusters
-                idxs = cluster_assigns == k;
+        function o = MDP(concentration_or_rhs, X, cluster_assigns, prior)
+            if nargin == 1 % copy constructor
+                % Assign the arrays
+                rhs = concentration_or_rhs;
+                o.concentration = rhs.concentration;
+                o.N = rhs.N;
+                o.data_dim = rhs.data_dim;
+                o.X = rhs.X;
                 
-                o.cluster_likes{k} = copy(prior);
-                o.cluster_likes{k}.fit(X(idxs,:));
+                o.cluster_assigns = rhs.cluster_assigns;
+                o.n_clusters = rhs.n_clusters;
+                o.cluster_counts = rhs.cluster_counts;
+                
+                % But explicitly copy the handles              
+                o.prior = copy(rhs.prior);
+                o.cluster_likes = copy(rhs.cluster_likes);
+                
+            elseif nargin > 0 % support empty constructor for array construction
+                % cluster_assigns must be all specified, for now.            
+                [o.N, o.data_dim] = size(X);
+                o.X = X;
+                o.concentration = concentration_or_rhs;                        
+                o.prior = prior;
+                
+                nzidxs = cluster_assigns > 0;
+                if sum(nzidxs > 0)                
+                    % Initialize our model with cluster_assigns
+                    o.cluster_assigns = cluster_assigns;            
+
+                    o.n_clusters = max(cluster_assigns);                    
+                    o.cluster_counts = accumarray(cluster_assigns(nzidxs), ones(o.N, 1));            
+
+                    for k = 1:o.n_clusters
+                        idxs = cluster_assigns == k;
+
+                        o.cluster_likes{k} = copy(prior);
+                        o.cluster_likes{k}.fit(X(idxs,:));                        
+                    end
+                end
             end
         end
         
@@ -67,7 +87,7 @@ classdef MDP < handle
         end
         
         function k_old = remove_point(o, n)
-% Remove item n. First step in Gibbs sampling. Refits the distribution.
+% k_old = remove_point(o, n) removes n. First step in Gibbs sampling.
             k_old = o.cluster_assigns(n);
             o.cluster_counts(k_old) = o.cluster_counts(k_old) - 1;
             o.cluster_assigns(n) = 0;

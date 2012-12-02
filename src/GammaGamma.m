@@ -71,8 +71,12 @@ classdef GammaGamma < OnlineDistribution
             p = exp(log_top - log_bot);
         end
         
-        function p = pred_like_scalar(o, x)
-            p = o.pred_like(x);
+        function p = pred_like_scalar(o, X)
+            % Dubey (1.1)
+            log_top = o.post_shape * log(o.post_rate) + (o.shape - 1) * log(X);
+            log_bot = betaln(o.shape, o.post_shape) + (o.shape + o.post_shape) * log(o.post_rate + X);
+            
+            p = exp(log_top - log_bot);                        
         end
     
     end

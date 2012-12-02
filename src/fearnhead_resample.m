@@ -1,4 +1,5 @@
-function [ new_weights ] = fearnhead_resample( weights, n_particles )
+function [ new_weights, c ] = fearnhead_resample( weights, n_particles )
+% new_weights = fearnhead_resample( weights, n_particles )
 % Fearnhead's exhaustive resampling N < RN algorithm.
 %
 % weights     - M-vector of weights (full weights)

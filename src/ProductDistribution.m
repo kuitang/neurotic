@@ -32,7 +32,7 @@ classdef ProductDistribution < OnlineDistribution
         
         function fit(o, X)
             for i = 1:o.N                
-                o.pdfs{i}.fit(X(o.idxranges{i}));
+                o.pdfs{i}.fit(X(:, o.idxranges{i}));
             end
         end
         
@@ -51,7 +51,7 @@ classdef ProductDistribution < OnlineDistribution
         function p = pred_like(o, X)
             p = 1;
             for i = 1:o.N
-                p = p * o.pdfs{i}.pred_like(X(o.idxranges{i}));
+                p = p * o.pdfs{i}.pred_like(X(:, o.idxranges{i}));
             end
         end
         

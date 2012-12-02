@@ -27,36 +27,38 @@ classdef TestNormalWishart < TestCase
         end
 
         function assertAlmostEqualTo(self, other)
-            assertElementsAlmostEqual(self.nw.data_mean, other.data_mean);
-            assertElementsAlmostEqual(self.nw.data_cov,  other.data_cov);
+            assertElementsAlmostEqual(self.nw.post_mean, other.post_mean);
+            assertElementsAlmostEqual(self.nw.post_dof,  other.post_dof);
             
             assertElementsAlmostEqual(self.nw.pred_mean, other.pred_mean);
-            assertElementsAlmostEqual(self.nw.pred_cov,  other.pred_cov);
             assertElementsAlmostEqual(self.nw.pred_dof,  other.pred_dof);
+
+            assertElementsAlmostEqual(self.nw.post_chol, other.post_chol);
+            assertElementsAlmostEqual(self.nw.pred_chol, other.pred_chol);
         end
         
         function testEdgeCases(self)
             self.nw.fit([]);            
+            % Should revert to the prior
+            assertEqual(self.nw.post_mean, self.nw.prior_mean);
+            assertEqual(self.nw.post_n, self.nw.prior_n);
             
-            assertElementsAlmostEqual(self.nw.data_mean, zeros(1, self.D));
-            assertElementsAlmostEqual(self.nw.data_cov,  zeros(self.D));
-            
-            self.nw.fit(self.x);
-            
-            assertElementsAlmostEqual(self.nw.data_mean, self.x);
-            assertElementsAlmostEqual(self.nw.data_cov,  zeros(self.D));            
+            post_cov = self.nw.post_chol' * self.nw.post_chol;
+            assertElementsAlmostEqual(post_cov, self.nw.prior_cov);
+                        
+            self.nw.fit(self.x);              
+            % TODO: Do some tests!
         end
         
         function testOnlineEdgeCases(self)
             self.nw.add_point(self.x);
             
-            assertElementsAlmostEqual(self.nw.data_mean, self.x);
-            assertElementsAlmostEqual(self.nw.data_cov,  zeros(self.D));
+            % TODO: Update tests!            
             
             self.nw.remove_point(self.x);
             
-            assertElementsAlmostEqual(self.nw.data_mean, zeros(1, self.D));
-            assertElementsAlmostEqual(self.nw.data_cov,  zeros(self.D));
+            % TODO: Update tests!
+
         end
         
         function testOnlineAlmostEqual(self)
