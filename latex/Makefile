@@ -1,4 +1,4 @@
-TARGETS=paragraphs.pdf slides.pdf
+TARGETS=paragraphs.pdf slides.pdf submission.pdf
 all: $(TARGETS)
 
 paragraphs.pdf: paragraphs.tex refs.bib
@@ -6,6 +6,12 @@ paragraphs.pdf: paragraphs.tex refs.bib
 	bibtex paragraphs.aux
 	pdflatex paragraphs.tex
 	pdflatex paragraphs.tex
+
+submission.pdf: submission.tex refs.bib
+	pdflatex submission.tex
+	bibtex submission.aux
+	pdflatex submission.tex
+	pdflatex submission.tex
 
 slides.pdf: slides.tex refs.bib
 	pdflatex slides.tex

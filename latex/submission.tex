@@ -1,0 +1,62 @@
+\documentclass{article}
+\usepackage{natbib}
+
+\begin{document}
+
+\title{A Bayesian Nonparametric Approach to Neural Image Segmentation}
+
+\author{Kui Tang and Frank Wood}
+\date{\today}
+\maketitle
+\begin{abstract}
+We develop a semi-supervised method to produce a probabilistic segmentation of neurons in electron micrograph images of brain tissue. Unlike previous approaches, which generate , BLAH BLAH. To do so, we model the distribution of neurons in an image as an infinite Gaussian mixture model. Each neuron's pixels are characterized by likelihood function that is a combination of multivariate Gaussian and naive Bayes features, while the total and location of neurons are inferred automatically, sidestepping many model-selection or hypothesis-combination difficulties in current approaches. Importantly, our model can incorporate both features derived directly from the data and features derived from the output of a supervised learner. Using data collected by Kasthuri et al., we show that our model can obtain plausible segmentations with no training data, while receiving a significant boost in its presence.
+
+\section{Introduction}
+A new branch of computational neuroscience, \emph{connectomics}, aims to reconstruct the physical location and circuit connectivity of the brain. Recent advances in electron microscopy have produced images of 10 nm in the lateral plane and 50 nm in the vertical plane, sufficient detail to capture most of even the smallest neural processes~\citep{Briggman2006}. The scale of the data is profound; the human brain is estimated to contain 100 billion neurons connected by up to a quadrillion synapses~\citep{Kasthuri2010}. Like the human genome project before, it is clear that automated methods are needed to map the connectome.
+
+All published connectomes have been manually labelled. White et al. published the first connectome of \emph{C. elegans} in 1986, marking axons, dendrites, and cell bodies in each frame and tracing the labels through frames~\cite{White12111986}. More recent work uses computer assistance but fundamentally rely on a skilled human's identification of neural bodies~\cite{Jarrell2012,Bock2011Roberts2011}. Several authors have developed efficient semi-automated methods \cite{Roberts2011,Unger2009}. Unfortunately, current baseline speeds of computer-assisted manual tracing would still take 10,000 person-years to construct a mouse cortical column~\cite{Briggman2006}. Therefore, in the rest of the paper, we focus on automated techniques.
+
+\section{Related Work}
+Automated techniques generally begin by segmenting a 2D slice based on cell membrane boundaries---a highly distinctive feature.
+
+\section{Methods}
+We model an image as an infinite Gaussian mixture model. First proposed by Rasmussen~\citep{Rasmussen2000}, this model extends the classical finite Gaussian mixture model with $K$ classes to estimate $K$ automatically from the data.
+
+
+\section{Results}
+
+\section{Discussion}
+
+\end{abstract}
+\section*{October 3, 2012}
+To appear in: Related Work
+
+
+Koshevoy et al. \cite{Koshevoy2006} use a variant of SIFT \cite{Lowe2004} to register a stack of images into a 3D volume. According to Koshevoy, images between images exhibit warping due to the physical slicing, physical structural changes, and a distinct rotation and displacement on each frame. From the displacements of individual keypoints, a global transformation vector is calculated, allowing slices to be properly aligned. However, the SIFT features do not capture neural processes well, and thus is unsuited for identifying neurons across images.
+
+\section*{October 15, 2012}
+Introduction:
+
+Related Work:
+
+EM images present several challenges for classical segmentation algorithm. First, structures or interest are small and densely packed \cite{Jain2007}. Second, due to the physical cutting process, images may be warped from slice to slice \cite{Koshevoy2006}.
+
+
+Fully-automated methods use manual labels as input for supervised learning. Segmentation can be done in voxel space, after which the learned segmentation can be directly used as a 3D reconstruction. Because cells are usually disconnected, segmentation can be reduced to binary classification of whether voxels are inside or outside a cell. Jain et al. \cite{Jain2007} achieved an 8.0\% test error with a 34,000 convolutional neural network, a statistically significant improvement other the 18.95\% error of thresholding, while MRFs and CRFs do no better than thresholding. Andres et al. obtain similar performance, at 8\% misclassification, using the watershed algorithm over a probability map of a random forest with hand-engineered features \cite{Andres2008, Gonzales2008}. However, the dataset used by both used a special intracellular stain, making the segmentation job easier.
+
+Alternatively, one can segment in pixel space and track the identity of segmented bodies in the vertical dimension. This is motivated by the poor vertical resolution of EM images: the thinnest slices are 40nm think \cite{Kaynig2010b, Briggman2006}. Jurrus et al. \cite{Jurrus2008} first obtain 2D segmentations with watershed after preprocessing linear diffusion filtering (NB: learn what this is!), and construct a weighted graph of these segments, with edges between adjacent sections with edge costs favoring high cross-correlation of segments low lateral displacement. Each neural process is thus a shortest path through this graph, computed by Dijkstra's algorithm. This cost function is robust to merging and loss of sections, but because Dijkstra's algorithm finds a single path, it cannot model branching. Kaynig et al. \cite{Kaynig2010a} presuppose segmentation and represent the image as a graph of regions, like Jurrus. Pairwise features are represented as edge weights, and a random forest classifier is trained to output a scalar similarity score for each pair. Then a probabilistic model encoding geometric constraints with cross-section correspondences as hidden variables is trained with EM. Finally, the maximum-likelihood result is the 3D reconstruction. These pairwise correspondences are fed to an agglomerative clustering algorithm, constructing the neural processes from ground-up in the same manner as a human. Unlike in Jurrus, processes may merge. However, each region is explicitly limited to two correspondences: one above and below, so processes still cannot branch.
+
+Feature engineering has improved 2D segmentation. Venkataraju et al. \cite{Venkataraju2009} generated 100 Hessian neighborhood features at each pixel and classified Jurrus's dataset with AdaBoost. Lucchi et al. \cite{Lucchi2010} develop ray descriptors, which capture shape features without a predefined shape model. These features are rotation, scale, and translation invariant, but strongly discriminate the types of objects observed in EM images. There features were used in SVMs to classify interior and boundary points of mitochondria, which are considerably harder to classify than other cellular structures \cite{Kaynig2010b}, and a graph cut found the final 2D segmentation with 98\% accuracy. Kaynig et al. encode perceptual grouping constraints---rules of thumb used by human experts to group neuron structures---as pairwise interaction terms in an energy function solved by graph cut. Minimizing the energy function gives a segmentation, and identifying maximum overlapping regions between slices is sufficient to obtain a 3D reconstruction 
+
+\section{November 2, 2012}
+Initial Approaches
+
+We modelled a single slice of neural tissue with a finite Gaussian mixture model with full covariances. The feature vector $(x, y, i)$ consisted of the positional coordinates and pixel intensity. Each cluster represented the pixels belonging to a single cell, with a special background cluster to contain cell membrance and interstitial space. For this background, we experimented with both a triangular probability density $p(i) = 2 - 2*i$ and a sigmoid density of the form $p(i) = \frac{1}{Z} \left[ 1 - \left( 1 + \exp(-p(i-c)) \right)^-1 \right]$ with $p$ and $c$ denoting the precision (inverse scale) and location (the preimage of the midpoint of the range). Inference was performed with Gibbs sampling.
+
+Visually, our segmentation seems reasonable, although cells whose interior intensity varies significantly tend to be oversegmented, and the cell boundary model is insufficient because the boundary intensity varies locally (see slides). A more accurate background model must be adaptive.
+
+A more serious problem is that our Gaussian intensity model is insufficienltly compact: the standard deviations are far too high to accurately model the bounded $[0, 1]$ intensity range. To rectify this, we experimented with modelling the third dimension as a Beta distribution independently of the first two dimensions, but still dependent on class labels. We implemented a Metropolis-Hastings sampler using a lognormal proposal and a prior based on \cite{Bouguila2006}. We modified the prior to take the form $$ \left[ 1 - exp(-( (s - 0.5)^2)) (1 - exp(-( (a - 1)^2)))(1 - exp(-( (b - 1).^2))) (1 - exp(-d * ((s - 2).^2 + (m - 0.5).^2))) exp(-r / (s.^2 .* m .* (1 - m)) - (k * s.^2) / 2) \right]$$. This avoids distributions with $a, b < 1$, which lead to unbounded U-shaped distributions, as well as $a = b = 1$, the uniform distribution. Unfortunately, our experiment with this model reverted to axis-aligned decision boundaries. It appears that spatio-intensity correlations are essential.
+
+\bibliographystyle{plain}
+\bibliography{refs.bib}
+\end{document}

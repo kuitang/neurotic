@@ -12,7 +12,15 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
     prior_pred_like = prior.pred_like(mdp.X); % col vector
     
     ll = 0;
+    
+    actual_n = 0;
+    
     for n = randperm(mdp.N)
+        actual_n = actual_n + 1;
+        if mod(actual_n, 1000) == 0
+            disp(['actual_n = ' num2str(actual_n)]);
+        end
+        
         k_old = mdp.remove_point(n);
         % Removed a point, so we must refit the posterior
         %

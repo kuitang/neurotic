@@ -9,14 +9,12 @@
 F = fullfile(DATA_PREFIX, 'kat11info.h5');
 xyres = 1000;
 zres  = 100;
-
-%% Download info file
 secret;
 KBASE = ['http://openconnecto.me/emca/' KAT11_TOKEN '/'];
+PUBBASE = 'http://openconnecto.me/emca/kasthuri11/';
+
+%% Download info file
 urlwrite([KBASE 'projinfo/'], F);
-
-
-%% Parse the h5 file
 proj_res      = h5read(F, '/PROJECT/RESOLUTION');
 proj_type     = h5read(F, '/PROJECT/TYPE');
 proj_res_str  = num2str(proj_res);
@@ -43,17 +41,59 @@ slice_range   = h5read(F, '/DATASET/SLICERANGE');
 % type kat11_ann.h5
 
 %% Brute force
+
+%% Download bounding boxes
 % This list is discovered empirically. i.e. watching which requests fail.
-topid = 6075
+topid = 6075;
 exclude = [2146 2208 2216 2218];
 
-annoids = 1:topid;
-annoids(exclude) = [];
+annoid = 1:topid;
+annoid = annoid';
+annoid(exclude) = [];
 
-% Chunk our requests
+Nids = length(annoid);
+
+tmp = 'bbox_tmp.h5';
+
+res      = zeros(Nids, 1);
+xyz_off  = zeros(Nids, 3);
+xyz_dim  = zeros(Nids, 3);
+conf     = zeros(Nids, 1);
+kvpairs  = cell(Nids, 1);
+
+for i = 1:Nids
+    a = annoid(i);
+        
+    urlwrite([KBASE '/' num2str(a) '/boundingbox/'], tmp);
+    head = ['/' num2str(a) '/'];
+    
+    res(i)       = h5read(tmp, [head 'RESOLUTION']);
+    xyz_off(i,:) = h5read(tmp, [head 'XYZOFFSET']);
+    xyz_dim(i,:) = h5read(tmp, [head 'XYZDIMENSION']);
+    conf(i)      = h5read(tmp, [head 'METADATA/CONFIDENCE']);
+    kvpairs(i)   = h5read(tmp, [head 'METADATA/KVPAIRS']);
+    disp(num2str(a));
+end
+
+annotation_bboxen = dataset(annoid, res, xyz_off, xyz_dim, conf, kvpairs);
+save('annotation_bboxen.mat', 'annotation_bboxen');
+
+%% Download the cutouts from the server
+vox_sz = sum(double(annotation_bboxen(:,'xyz_dim')), 2);
+small_idxs = vox_sz < 1000;
+small_bboxen = annotation_bboxen(small_idxs,:);
+
+for i = 1:size(small_bboxen, 1)
+    vcstr = vol_cutout_string(double(small_bboxen(i,'res')), double(small_bboxen(i,'xyz_off')), double(small_bboxen(i,'xyz_dim')));
+    a = num2str(double(small_bboxen(i,'annoid')));
+    urlwrite([PUBBASE '/' vcstr], [DATA_PREFIX '/kat11_img_' a]);
+    urlwrite([KBASE '/' vcstr], [DATA_PREFIX '/kat11_ann_' a]);
+end
+
+%% Chunk our requests
 % The server will crash with chunksz = 500. 100 is the highest known good.
-chunksz = 100;
-parts = partition_rem(annoids', chunksz);
+chunksz = 10;
+parts = partition_rem(annoid', chunksz);
 
 for i = 1:length(parts)
     % We made annoids column vectors for partitioning. But the remote
@@ -66,8 +106,8 @@ for i = 1:length(parts)
     
     query_file = ['queries/kat11_q_' suffix];
     
-    h5create(query_file, '/ANNOIDS', size(annoids), 'Datatype', 'int32');
-    h5write(query_file, '/ANNOIDS', annoids);
+    h5create(query_file, '/ANNOIDS', size(annoid), 'Datatype', 'int32');
+    h5write(query_file, '/ANNOIDS', annoid);
 end
 
 % %% Use this code to probe ANNOIDS

@@ -8,18 +8,23 @@ function [ h ] = plot_img( h, n, loglike_vec, X, img, mdp )
     
     figure(h);
     
-    subplot(1,3,1);
+    subplot(1,4,1);
     nz_loglike = loglike_vec(loglike_vec ~= 0);
     plot(nz_loglike);
     title('Log-likelihood vs iteration');
     xlabel('Iteration');
     ylabel('Log-likelihood');
 
-    subplot(1,3,2);
+    subplot(1,4,2);
     plot_point_overlay(img, mdp, X);
     title(['K = ' num2str(mdp.n_clusters) ' iter ' num2str(n) ' ll = ' num2str(nz_loglike(end))]);
 
-    subplot(1,3,3);
-    imshow(img); 
+    subplot(1,4,3);
+    imshow(img);
+    
+    % The feature map
+    subplot(1,4,4);
+    fmap = reshape(X(:,4), size(img));
+    imshow(fmap);
 
 end

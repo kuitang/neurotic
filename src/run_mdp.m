@@ -2,7 +2,7 @@ function [ samples ] = run_mdp( iter_f, state, params, X, img, mdp, niters, burn
 
     loglike = zeros(niters, 1);    
     img_h = figure(1);    
-    set(img_h, 'Units', 'normalized', 'position', [0.1 0.1 0.9 0.4]);
+    set(img_h, 'Units', 'normalized', 'position', [0.1 0.1 1 0.4]);
     clf;
     
     hist_h = figure(2);
@@ -10,7 +10,7 @@ function [ samples ] = run_mdp( iter_f, state, params, X, img, mdp, niters, burn
     clf;    
     
     for n = 1:niters
-        tic
+        tic                
         
         cluster_assigns_old = mdp.cluster_assigns;
         [mdp, state, ll] = iter_f(mdp, state, params);

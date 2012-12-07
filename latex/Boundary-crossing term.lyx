@@ -1,0 +1,268 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\usepackage{fullpage}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2cm
+\rightmargin 2cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Boundary-crossing penalty term
+\end_layout
+
+\begin_layout Author
+Kui Tang
+\end_layout
+
+\begin_layout Standard
+Suppose a closed loop of pixels assigned to the background class encloses
+ a cluster identified as a cell, and suppose that the cluster mean is contained
+ inside that loop.
+ In this simple case, we will modify the Gaussian mixture model to encode
+ our a priori belief that 
+\begin_inset Quotes eld
+\end_inset
+
+the cell body should not spill outside of its membrane.
+\begin_inset Quotes erd
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Paragraph
+Notation and Definitions
+\end_layout
+
+\begin_layout Standard
+In a Gaussian mixture model, denote by 
+\begin_inset Formula $\mathbf{X}$
+\end_inset
+
+ an 
+\begin_inset Formula $N\times3$
+\end_inset
+
+ feature matrix with rows 
+\begin_inset Formula $\left(x_{i},y_{i},I_{i}\right)$
+\end_inset
+
+.
+ Let 
+\begin_inset Formula $\mathbf{z}$
+\end_inset
+
+ be an 
+\begin_inset Formula $N\times1$
+\end_inset
+
+ cluster assignment vector with entries taking values 
+\begin_inset Formula $1,\ldots,K$
+\end_inset
+
+.
+ For class 
+\begin_inset Formula $k$
+\end_inset
+
+, let 
+\begin_inset Formula $\mu_{k}$
+\end_inset
+
+ and 
+\begin_inset Formula $\Sigma_{k}$
+\end_inset
+
+ denote the parameters of its Gaussian likelihood function.
+\end_layout
+
+\begin_layout Standard
+Class 1 is the background.
+ Define 
+\begin_inset Formula $Z_{1}:=\left\{ \left(x_{i},y_{i}\right):z_{i}=1\right\} $
+\end_inset
+
+.
+ That is, the 
+\begin_inset Formula $x$
+\end_inset
+
+ and 
+\begin_inset Formula $y$
+\end_inset
+
+ coordinates of the points assigned to the background cluster.
+ Remember that each index 
+\begin_inset Formula $i$
+\end_inset
+
+ uniquely maps to coordinates 
+\begin_inset Formula $(x,y)$
+\end_inset
+
+, so the difference between the two is just notation.
+ Also remember the difference between scalar and vector 
+\begin_inset Formula $x$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Now, given 
+\begin_inset Formula $\mathbf{z}$
+\end_inset
+
+, construct an undirected graph 
+\begin_inset Formula $G$
+\end_inset
+
+ whose vertices are the pixels.
+ Draw an edge between two pixels if neither pixel belongs to the background.
+ (This idea is taken from Turaga et al., where they learn an affinity map
+ from a convolutional neural network and obtain better results by considering
+ background voxels to be disconnected from all other voxels).
+\end_layout
+
+\begin_layout Standard
+Since the graph is undirected, we can easily calculate pairwise reachability
+ by finding connnected components, which is cheaper than Dijkstra's algorithm.
+ Given coordinate vectors 
+\begin_inset Formula $\mathbf{u},\mathbf{w}$
+\end_inset
+
+, define 
+\begin_inset Formula $\delta\left(\mathbf{u},\mathbf{v}\right)=\begin{cases}
+1-\epsilon & \left(x_{i},y_{i}\right)\mbox{ is reachable from }\left(\mu_{k1},\mu_{k2}\right)\\
+\epsilon & \mbox{otherwise}
+\end{cases}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Paragraph
+Extension
+\end_layout
+
+\begin_layout Standard
+We introduce no new latent variables, but we do modify the Gaussian likelihood
+ function and draw extra edges in our graphical model.
+\end_layout
+
+\begin_layout Standard
+In a Gaussian mixture model, the likelihood function for class 
+\begin_inset Formula $k$
+\end_inset
+
+ is given by
+\begin_inset Formula 
+\[
+p\left(\mathbf{x}_{i}|z_{i}=k,\mu,\Sigma\right)=\mathcal{N}\left(\mathbf{x}_{i}|\mu_{k},\Sigma_{k}\right)
+\]
+
+\end_inset
+
+We want the likelihood to drastically decrease whenever we must cross the
+ background, so we change to
+\begin_inset Formula 
+\[
+p\left(x_{i},y_{i},I_{i}|z_{i}=k,Z_{1},\mu,\Sigma\right)=\delta\left(\left(x_{i},y_{i}\right),\left(\mu_{k1},\mu_{k2}\right)\right)\mathcal{N}\left(x_{i},y_{i},I_{i}|\mu_{k},\Sigma_{k}\right)
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $\mu_{k1},\mu_{k2}$
+\end_inset
+
+ denote the first two coordinates of 
+\begin_inset Formula $\mu_{k}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Paragraph
+New Posteriors
+\end_layout
+
+\begin_layout Standard
+The problem is that I can't determine whether this likelihood is still conjugate
+ to the Normal-Wishart distribution.
+ I doubt it.
+\end_layout
+
+\begin_layout Standard
+The hack is just to notice that almost no unreachable points will be assigned
+ to a cluster, so we can simply ignore those that unfortunately do and compute
+ our posteriors anyways.
+\end_layout
+
+\begin_layout Standard
+Would this violate too much detailed balance to be worth doing?
+\end_layout
+
+\end_body
+\end_document
