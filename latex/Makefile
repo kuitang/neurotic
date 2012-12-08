@@ -8,10 +8,10 @@ paragraphs.pdf: paragraphs.tex refs.bib
 	pdflatex paragraphs.tex
 
 submission.pdf: submission.tex refs.bib
-	pdflatex submission.tex
+	- pdflatex submission.tex
 	bibtex submission.aux
-	pdflatex submission.tex
-	pdflatex submission.tex
+	- pdflatex submission.tex
+	- pdflatex submission.tex
 
 slides.pdf: slides.tex refs.bib
 	pdflatex slides.tex

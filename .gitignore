@@ -13,6 +13,9 @@ src/*.mat
 # VIM
 *.sw*
 
+# Mac
+*.DS_Store
+
 # Latex
 latex/*.pdf
 *log

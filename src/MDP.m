@@ -15,6 +15,7 @@ classdef MDP < matlab.mixin.Copyable
         N = 0;
         data_dim
         X
+        misc_data        
         prior
         
         % N x 1 vector with range [0, num_clusters]. 0 represents
@@ -29,7 +30,7 @@ classdef MDP < matlab.mixin.Copyable
     end
     
     methods
-        function o = MDP(concentration_or_rhs, X, cluster_assigns, prior)
+        function o = MDP(concentration_or_rhs, X, misc_data, cluster_assigns, prior)
             if nargin == 1 % copy constructor
                 % Assign the arrays
                 rhs = concentration_or_rhs;
@@ -37,6 +38,7 @@ classdef MDP < matlab.mixin.Copyable
                 o.N = rhs.N;
                 o.data_dim = rhs.data_dim;
                 o.X = rhs.X;
+                o.misc_data = misc_data;
                 
                 o.cluster_assigns = rhs.cluster_assigns;
                 o.n_clusters = rhs.n_clusters;
@@ -50,8 +52,9 @@ classdef MDP < matlab.mixin.Copyable
                 % cluster_assigns must be all specified, for now.            
                 [o.N, o.data_dim] = size(X);
                 o.X = X;
+                o.misc_data = misc_data;
                 o.concentration = concentration_or_rhs;                        
-                o.prior = prior;
+                o.prior = copy(prior);
                 
                 nzidxs = cluster_assigns > 0;
                 if sum(nzidxs > 0)                
@@ -63,8 +66,14 @@ classdef MDP < matlab.mixin.Copyable
 
                     for k = 1:o.n_clusters
                         idxs = cluster_assigns == k;
-
+                                                
                         o.cluster_likes{k} = copy(prior);
+                        
+                        % TEST -- did we actually copy?
+                        prior.pdfs{2}.data_n = 999;
+                        assert(o.cluster_likes{k}.pdfs{2}.data_n ~= 999);
+                        prior.pdfs{2}.data_n = 0;
+                        
                         o.cluster_likes{k}.fit(X(idxs,:));                        
                     end
                 end

@@ -79,6 +79,7 @@ annotation_bboxen = dataset(annoid, res, xyz_off, xyz_dim, conf, kvpairs);
 save('annotation_bboxen.mat', 'annotation_bboxen');
 
 %% Download the cutouts from the server
+load('annotation_bboxen.mat');
 vox_sz = sum(double(annotation_bboxen(:,'xyz_dim')), 2);
 small_idxs = vox_sz < 1000;
 small_bboxen = annotation_bboxen(small_idxs,:);

@@ -1,7 +1,11 @@
-\documentclass{article}
-\usepackage{natbib}
+\documentclass[draft]{article}
+\usepackage{fullpage}
+
+\usepackage[draft]{fixme}
 
 \begin{document}
+
+\listoffixmes
 
 \title{A Bayesian Nonparametric Approach to Neural Image Segmentation}
 
@@ -9,19 +13,27 @@
 \date{\today}
 \maketitle
 \begin{abstract}
-We develop a semi-supervised method to produce a probabilistic segmentation of neurons in electron micrograph images of brain tissue. Unlike previous approaches, which generate , BLAH BLAH. To do so, we model the distribution of neurons in an image as an infinite Gaussian mixture model. Each neuron's pixels are characterized by likelihood function that is a combination of multivariate Gaussian and naive Bayes features, while the total and location of neurons are inferred automatically, sidestepping many model-selection or hypothesis-combination difficulties in current approaches. Importantly, our model can incorporate both features derived directly from the data and features derived from the output of a supervised learner. Using data collected by Kasthuri et al., we show that our model can obtain plausible segmentations with no training data, while receiving a significant boost in its presence.
+We \fxfatal*{we don't really develop; what the best verb?}{develop} a Bayesian nonparametric method to segment neurons in electron micrograph images of brain tissue. Our model imposes spatial locality on arbitrary features, automatically determines the number of cells in an image, and can be used in both unsupervised and semi-supervised settings. We model the distribution of neurons in an image as an infinite Gaussian mixture model. Each neuron's pixels are characterized by likelihood function that is a combination of multivariate Gaussian and naive Bayes features. Using data collected by Kasthuri et al., we show that our model can obtain plausible segmentations with no training data, while receiving a significant boost in its presence.
 
 \section{Introduction}
-A new branch of computational neuroscience, \emph{connectomics}, aims to reconstruct the physical location and circuit connectivity of the brain. Recent advances in electron microscopy have produced images of 10 nm in the lateral plane and 50 nm in the vertical plane, sufficient detail to capture most of even the smallest neural processes~\citep{Briggman2006}. The scale of the data is profound; the human brain is estimated to contain 100 billion neurons connected by up to a quadrillion synapses~\citep{Kasthuri2010}. Like the human genome project before, it is clear that automated methods are needed to map the connectome.
+A new branch of computational neuroscience, \emph{connectomics}, aims to reconstruct the physical location and circuit connectivity of the brain. Recent advances in electron microscopy have produced images of 10 nm in the lateral plane and 50 nm in the vertical plane, sufficient detail to capture most of even the smallest neural processes~\cite{Briggman2006}. The scale of the data is profound; the human brain is estimated to contain 100 billion neurons connected by up to a quadrillion synapses~\cite{Kasthuri2010}. Like the human genome project before, it is clear that automated methods are needed to map the connectome.
 
-All published connectomes have been manually labelled. White et al. published the first connectome of \emph{C. elegans} in 1986, marking axons, dendrites, and cell bodies in each frame and tracing the labels through frames~\cite{White12111986}. More recent work uses computer assistance but fundamentally rely on a skilled human's identification of neural bodies~\cite{Jarrell2012,Bock2011Roberts2011}. Several authors have developed efficient semi-automated methods \cite{Roberts2011,Unger2009}. Unfortunately, current baseline speeds of computer-assisted manual tracing would still take 10,000 person-years to construct a mouse cortical column~\cite{Briggman2006}. Therefore, in the rest of the paper, we focus on automated techniques.
+All published connectomes have been manually labelled. White et al. published the first connectome of \emph{C. elegans} in 1986, marking axons, dendrites, and cell bodies in each frame and tracing the labels through frames~\cite{White12111986}. More recent work uses computer assistance but fundamentally rely on a skilled human's identification of neural bodies~\cite{Jarrell2012,Bock2011Roberts2011}. Several authors have developed efficient semi-automated methods \cite{Roberts2011,Unger2009}. Unfortunately, current baseline speeds of computer-assisted manual tracing would still take 10,000 person-years to construct a mouse cortical column~\cite{Briggman2006}. Therefore, henceforth we focus on automated techniques.
 
 \section{Related Work}
+\fxfatal{Write topic sentence, summarize your current literature review, and add paragraphs about feature engineering and graph pathfinding methods. Cite Malik's normalized cuts.}
 Automated techniques generally begin by segmenting a 2D slice based on cell membrane boundaries---a highly distinctive feature.
 
-\section{Methods}
-We model an image as an infinite Gaussian mixture model. First proposed by Rasmussen~\citep{Rasmussen2000}, this model extends the classical finite Gaussian mixture model with $K$ classes to estimate $K$ automatically from the data.
+\section{Model and Methods}
 
+\fxfatal{Obtain more information about this dataset, particularly stain protocol, and put in the right place.}
+We analyzed a  volume of mouse visual cortex of resolution $3 \times 3 \times 30 \mbox{ nm}^3$ collected by \fxfatal{Unpublished; to cite}{Kasthuri et al.}
+
+\fxfatal{Frank's notes: Think of your initial reaction of "wth are all these features?" What?! Spatial coordinates for GMM?}
+
+We model each pixel as feature vector $\mathbf{x}_n = (x_n, y_n, \phi_{1n}, \ldots, \phi_{mn})$. The first two dimensions encode the $x$ and $y$ coordinates of the pixel in order to provide spatial smoothing, while $\phi_{\cdot n}$ represent feature responses. Our model can handle arbitrary features, but in this paper, we will put pixel intensity in $\phi_{1\cdot} \in [0,1]$. Because cell interiors contain diverse structures, intensities values within a cell vary widely, so relying on $\phi_{1\cdot}$ alone oversegments. To reduce oversegmentation, we compute a cel boundary Radon-like feature for $\phi_{1\cdot}$, which homogenizes pixel intensities within a given cell~\cite{Kumar2010}. One computes Radon-like functions by taking line integrals of a kernel function along various scanning orientations, broken piecewise at image discontinuities. By varying the kernel, different structures and boundaries are enhanced. We follow Kumar's approach of averaging the integrals along each scan orientation to obtain a scalar response at each pixel. Finally, recall that our background class ($k = 1$) contains all pixels belonging on the cell membrane or in intracellular space. We penalize points
+
+%, the cell Background Radon-like feature response in $\phi_{2\cdot}$, and the length of the shortest cluster path from $(
 
 \section{Results}
 

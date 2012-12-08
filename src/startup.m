@@ -15,5 +15,5 @@ S1 = load_slices(fullfile(DATA_PREFIX, 'kasthuri11_mid.hd5'), 1, 1);
 %f1 = S1(1000:1199,1000:1199);
 f1 = S1(1500:1699,1000:1199);
 %a1 = A1(1000:1199,1000:1199);
-PHI1 = feature_map(f1);
+[PHI, misc_data] = feature_map(f1);
 
