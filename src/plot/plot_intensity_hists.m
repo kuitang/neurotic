@@ -21,18 +21,18 @@ function [ h ] = plot_intensity_hists( h, mdp, X )
         if k == 1
             plot(xs, mdp.cluster_likes{1}.pdfs{2}.pred_like_scalar(xs));            
         else
-            m   = mdp.cluster_likes{k}.post_mean(3);            
-            sd  = sqrt(mdp.cluster_likes{k}.pred_cov(3, 3));
-            dof = mdp.cluster_likes{k}.pred_dof;
+            m   = mdp.cluster_likes{k}.pdfs{1}.post_mean(3);            
+            sd  = sqrt(mdp.cluster_likes{k}.pdfs{1}.pred_cov(3, 3));
+            dof = mdp.cluster_likes{k}.pdfs{1}.pred_dof;
             plot(xs, tpdf( (xs - m) / sd, dof ));            
         end
         
         subplot(3, K, 2*K + k);
         
         if k ~= 1
-            m   = mdp.cluster_likes{k}.post_mean(3);            
-            sd  = sqrt(mdp.cluster_likes{k}.pred_cov(3, 3));
-            dof = mdp.cluster_likes{k}.pred_dof;
+            m   = mdp.cluster_likes{k}.pdfs{2}.post_mean;
+            sd  = sqrt(mdp.cluster_likes{k}.pdfs{2}.pred_cov);            
+            dof = mdp.cluster_likes{k}.pdfs{2}.pred_dof;
             plot(xs, tpdf( (xs - m) / sd, dof ));            
         end            
         

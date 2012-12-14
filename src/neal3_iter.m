@@ -19,6 +19,7 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
     actual_n = 0;
     
     for n = randperm(mdp.N)
+        assert(length(mdp.misc_data.slic_inds{end}) > 1);
 
         
         k_old = mdp.remove_point(n);        
@@ -35,7 +36,8 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
         x_pdf(end) = prior_pred_like(n);                
         
         for k = 1:mdp.n_clusters
-            refit_graph_dist(mdp, x_max, y_max, k_old);
+            mdp = refit_graph_dist(mdp, x_max, y_max, k_old);
+            assert(length(mdp.misc_data.slic_inds{end}) > 1);
             x_pdf(k) = mdp.cluster_likes{k}.pred_like_scalar(mdp.X(n,:));
         end
         

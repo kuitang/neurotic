@@ -1,0 +1,141 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 8.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       157,          7]
+NotebookDataLength[      3905,        131]
+NotebookOptionsPosition[      3578,        114]
+NotebookOutlinePosition[      3934,        130]
+CellTagsIndexPosition[      3891,        127]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", 
+   RowBox[{
+    RowBox[{
+    "Note", " ", "that", " ", "the", " ", "Gamma", " ", "pdf", " ", "is", " ",
+      "parameterized", " ", "by", " ", "\[Alpha]"}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{"shape", " ", "and", " ", "\[Beta]"}], " ", "=", " ", 
+     RowBox[{"scale", "."}]}]}], "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"pExp", "[", 
+     RowBox[{"x_", ",", "\[Lambda]_"}], "]"}], " ", ":=", " ", 
+    RowBox[{"x", "*", 
+     RowBox[{"Exp", "[", 
+      RowBox[{
+       RowBox[{"-", "\[Lambda]"}], "*", "x"}], "]"}]}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"pGamma", "[", 
+     RowBox[{"\[Lambda]_", ",", " ", "\[Alpha]_", ",", " ", "\[Beta]_"}], 
+     "]"}], " ", ":=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"\[Beta]", "^", "\[Alpha]"}], " ", "/", " ", 
+      RowBox[{"Gamma", "[", "\[Alpha]", "]"}]}], " ", "*", " ", 
+     RowBox[{"\[Lambda]", "^", 
+      RowBox[{"(", 
+       RowBox[{"\[Alpha]", "-", "1"}], ")"}]}], "*", 
+     RowBox[{"Exp", "[", 
+      RowBox[{
+       RowBox[{"-", "\[Beta]"}], "*", "\[Lambda]"}], "]"}]}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"pPredX", "=", 
+    RowBox[{
+     RowBox[{"Integrate", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"pX", "[", 
+         RowBox[{
+          SubscriptBox["x", 
+           RowBox[{"n", "+", "1"}]], ",", "\[Lambda]"}], "]"}], "*", 
+        RowBox[{"pGamma", "[", 
+         RowBox[{"\[Lambda]", ",", 
+          RowBox[{
+           SubscriptBox["\[Alpha]", "0"], "+", "n"}], ",", 
+          RowBox[{
+           SubscriptBox["\[Beta]", "0"], "+", "SumX"}]}], "]"}]}], ",", 
+       "\[Lambda]"}], "]"}], "//", "TraditionalForm"}]}]}]}]], "Input"],
+
+Cell[BoxData[
+ FormBox[
+  RowBox[{"-", 
+   FractionBox[
+    RowBox[{
+     SubscriptBox["x", 
+      RowBox[{"n", "+", "1"}]], " ", 
+     SuperscriptBox["\[Lambda]", 
+      RowBox[{
+       SubscriptBox["\[Alpha]", "0"], "+", "n"}]], " ", 
+     SuperscriptBox[
+      RowBox[{"(", 
+       RowBox[{
+        SubscriptBox["\[Beta]", "0"], "+", "SumX"}], ")"}], 
+      RowBox[{
+       SubscriptBox["\[Alpha]", "0"], "+", "n"}]], " ", 
+     SuperscriptBox[
+      RowBox[{"(", 
+       RowBox[{"\[Lambda]", " ", 
+        RowBox[{"(", 
+         RowBox[{
+          SubscriptBox["\[Beta]", "0"], "+", 
+          SubscriptBox["x", 
+           RowBox[{"n", "+", "1"}]], "+", "SumX"}], ")"}]}], ")"}], 
+      RowBox[{
+       RowBox[{"-", 
+        SubscriptBox["\[Alpha]", "0"]}], "-", "n"}]], " ", 
+     TemplateBox[{RowBox[{"n", "+", 
+         SubscriptBox["\[Alpha]", "0"]}],RowBox[{"\[Lambda]", " ", 
+         RowBox[{"(", 
+           RowBox[{"SumX", "+", 
+             SubscriptBox["x", 
+              RowBox[{"n", "+", "1"}]], "+", 
+             SubscriptBox["\[Beta]", "0"]}], ")"}]}]},
+      "Gamma2"]}], 
+    TemplateBox[{RowBox[{"n", "+", 
+        SubscriptBox["\[Alpha]", "0"]}]},
+     "Gamma"]]}], TraditionalForm]], "Output",
+ CellChangeTimes->{3.5629703194626083`*^9}]
+}, Open  ]]
+},
+WindowSize->{740, 752},
+WindowMargins->{{20, Automatic}, {Automatic, 44}},
+FrontEndVersion->"8.0 for Mac OS X x86 (32-bit, 64-bit Kernel) (November 6, \
+2010)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[579, 22, 1716, 49, 73, "Input"],
+Cell[2298, 73, 1264, 38, 64, "Output"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+
