@@ -1,0 +1,95 @@
+\documentclass{article}
+
+\usepackage[square,numbers]{natbib}
+\usepackage{amsmath, epsfig}
+\usepackage{amsfonts}
+\usepackage{subfigure}
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{easybmat}
+\usepackage{footmisc}
+\usepackage{url}
+\usepackage{color}
+\usepackage{soul}
+\usepackage{multirow}
+
+
+\begin{document}
+\title{Notes}
+\author{Frank Wood}
+\date{\today}
+\maketitle
+\section*{October 22, 2012}
+
+\section{Introduction}
+
+We are interested solving the problem of segmenting image stacks.  The particular task we face is the identification and tracing of neural processes in electron micrographs whose planar resolution is around 4 nm and whose slice thickness is around 40 nm.   This task can be phrased as a multi-class classification task where each voxel is labeled with the particular neuron (or other cell type) it belongs to and the number of neurons is unknown.   This task also has been phrased as one of segmenting connected components given an affinity graph.
+
+We approach this problem in a completely different way than that which has appeared in prior art.  Most significantly in terms of departure, we are largely uninterested in complete, space-filling segmentations and instead focus our attention on building a scaffolding that directly mathematically describes the paths taken by and connections between components in the volume.  It is our hypothesis that such a scaffold could be just as useful for further scientific study of the properties of the underlying neural tissue as a space filling segmentation.   For instance, consider a scientific question like ``what fraction of axons that pass the dendrite of this neuron synapse onto it?'' The space-filling segmentation community implicitly assumes that these kinds of questions can be answered via a statistical characterization of labelled connected components (volumes) that touch.  If this is true then a scaffolding model would be useful too because it could be used to  ``steer computational''  towards volumes that should contain features relevant to the statistical characterization of interest (here the synapsing characteristics of the axons passing one particular dendritic tree).
+
+%The mathematical characterization of this scaffold involves asserting that each object of interest corresponds to a parameter vector that is varies over time and space. This parameter vector characterizes an object-specific distribution over feature space (of which real spatial location is a sub vector).  The feature vector computed for each voxel is to be determined.  
+
+\section{Notation}
+
+The gray-level voxel intensity at voxel midpoint $x \in \mathbb{R}$, $y  \in \mathbb{R}$ (in the plane), and $z \in \mathbb{R}$ depth (note, in actual implementations $x,y,$ and $z$ are discrete voxel indices and the corresponding real-space locations of the voxels can be derived by assuming fixed-size voxels) is given by
+$\mathbf v_i = \{x_i,y_i,z_i, c_i\} \in \mathbb{R}^3\times[0,255]$  The  feature vector computed at each voxel is $\mathbf f_i \in \mathcal{F}$ where $\mathcal{F}$ is a $D$-dimensional feature space and $i$ indexes the collection of voxels.  At the minimum the feature vector $f_i = \{ f_{i,1}, f_{i,2}, f_{i,3}, f_{i,4}, \ldots f_{i,D}\}$ will include $f_{i,1} = v_i(x)$, $f_{i,2} = v_i(y)$, and $f_{i,3} = v_i(c)$.
+
+A single slice at depth $d$ is could be segmented using a simple mixture model.
+
+\begin{align}
+\boldsymbol\pi_d & \sim \text{Stick}(\alpha)\\
+\Theta_{k} & \sim \text{H}(\Psi) \\
+n_i | \boldsymbol\pi_d & \sim \boldsymbol\pi_d \\
+f_{i} | \{ n_i = k \} & \sim \text{F}(f_{i} |\Theta_{k})
+\end{align}
+
+Here $\Theta_{k}$ is a class specific parameter vector describing the distribution of feature vectors (through the family $\text{F}$) associated with neuron $k$.  The probability that a particular voxel is assigned to a neuron is determined by a combination of the likelihood term and the probability of joining cluster $k$ (given by $k^{\text{th}}$ element of $\pi_{d}$,  $\pi_{d}(k).$  The variable  $n$ indicates ``neuron'' assignment.  Note that the choice of $F$ is open but dependent on the characteristics of the feature vector.  The choice of $H$ will usually be chosen for computational convenience after $F$ is selected.  If $F$ is the product of a number of exponential family distributions then $H$ can be chosen to be conjugate. 
+
+In the case of tracing skeletons of connected neural processes this is insufficient as each neurons' processes will, except in a few slices around their nuclear regions, themselves be fragmented and distributed spatially throughout the volume.  In addition the proportion of the total area of particular slices assigned to a particular neuron will also vary along the length of a neuron.
+
+
+What we would like is a generative model something like the following:  neuron $k$ is, on slice $d$, further fragmented into some number of clusters whose proportions are given by $\boldsymbol\beta_{d,k}$.  
+
+\begin{align}
+\boldsymbol\pi_d & \sim \text{Stick}(\alpha)\\
+\boldsymbol\beta_{d,k} & \sim \text{Stick}(\delta)\\
+\Theta_{d, k,\ell} & \sim \text{H}(\Psi) \\
+n_i | \boldsymbol\pi_d & \sim \boldsymbol\pi_d \\
+b_{i,k} | \{n_i = k \}, \boldsymbol\beta_{d,k}  &  \sim \boldsymbol\beta_{d,k} \\
+f_{i} | \{ n_i = k \}, \{ b_i = \ell \} & \sim \text{F}(f_{i} |\Theta_{d, k,\ell})
+\end{align}
+
+Such a model would ordinarily be entirely unidentifiable, however, the inter-slice constraints inform the clustering at level $d$ by propagating statistical strength between layers.  In particular we would like to enforce smoothness  constraints like (until the nuclear cell region)
+
+\[\boldsymbol\beta_{d,k} \sim \text{Coag}(\boldsymbol\beta_{d-1,k})\] 
+
+and  (after the nuclear cell region)
+
+\[\boldsymbol\beta_{d,k} \sim \text{Frag}(\boldsymbol\beta_{d-1,k})\] 
+
+and 
+
+\[\Theta_{d, k,\ell} \sim \text{N}(\Theta_{d-1, k,\ell},\text{small})\]
+
+when no fragmentations or coagulations take place.  When coagulations take place then 
+
+\[\Theta_{d, k,\ell} \sim \text{N}(\lambda \Theta_{d-1, k,\ell'} + (1-\lambda)\Theta_{d-1, k,\ell*},2\times\text{small})\]
+
+and conversely 
+
+\[\Theta_{d, k,\ell'} \sim \text{N}(\Theta_{d-1, k},\frac{1}{2}\times\text{small})\] 
+
+for 2-way fragmentations
+
+
+and something like $\boldsymbol\pi_d \sim \text{GPUDDP}(\boldsymbol\pi_{d-1})$
+
+\begin{align}
+\boldsymbol\pi_{} & 
+\end{align}
+
+\bibliographystyle{plain}
+\bibliography{refs.bib}
+\end{document}
