@@ -32,7 +32,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     %% Construct objects
         
     feat_prior = NormalWishart(prior_mean, prior_cov, prior_dof, prior_n);
-    dist_prior = NormalWishart(2.5, 1, 1, 1);
+    dist_prior = NormalWishartOffline(250, 1e4, 10, 10);
     
     class_prior = ProductDistribution(1, 4, feat_prior, ...
                                       5, 5, dist_prior);
@@ -46,7 +46,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     mdp.cluster_likes{1} = ProductDistribution(1, 2, Uniform(size(X, 1)), ...
                                                3, 3, background, ...
                                                4, 4, Uniform(1), ... % Domain [0, 1]
-                                               5, 5, Uniform(6)); % Domain essentially 6
+                                               5, 5, Uniform(500)); % Domain essentially 500
     mdp.refit(1);
     mdp.refit(2);
     %[particles, weights] = smc_init(mdp, ProductDistribution(1, 2, Uniform(size(X, 1)), 3, 3, background));
