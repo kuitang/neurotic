@@ -27,13 +27,12 @@ function [ h ] = plot_intensity_hists( h, mdp, X )
             plot(xs, tpdf( (xs - m) / sd, dof ));            
         end
         
+        % This is plotting the GammaGamma
         subplot(3, K, 2*K + k);
         
         if k ~= 1
-            m   = mdp.cluster_likes{k}.pdfs{2}.post_mean;
-            sd  = sqrt(mdp.cluster_likes{k}.pdfs{2}.pred_cov);            
-            dof = mdp.cluster_likes{k}.pdfs{2}.pred_dof;
-            plot(xs, tpdf( (xs - m) / sd, dof ));            
+            xxs = linspace(eps, 500, 100);
+            plot(xxs, mdp.cluster_likes{k}.pdfs{2}.pred_like_scalar(xxs));
         end            
         
     end    

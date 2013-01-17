@@ -15,8 +15,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     prior_cov(:,3:end) = 0;    
         
     prior_cov(3,3) = 0.5 * v_intensity;
-    prior_cov(4,4) = 0.5 * v_bg_radon;
-    %prior_cov(5,5) = 1;
+    prior_cov(4,4) = 0.5 * v_bg_radon;    
     
     background = GammaGamma(1, 6, 2);
     
@@ -31,18 +30,23 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     
     %% Construct objects
         
-    feat_prior = NormalWishart(prior_mean, prior_cov, prior_dof, prior_n);
-    dist_prior = NormalWishartOffline(250, 1e4, 10, 10);
+    feature_prior  = NormalWishart(prior_mean, prior_cov, prior_dof, prior_n);
+    distance_prior = GammaGamma(1, 1, 10);    
     
-    class_prior = ProductDistribution(1, 4, feat_prior, ...
-                                      5, 5, dist_prior);
+    class_prior = ProductDistribution(1, 4, feature_prior, ...
+                                      5, 5, distance_prior);
     
+    % Hack: low probabilities when plugged into NormalGamma.
+    % Interpretation: when starting a new cluster, take its Dijkstra
+    % distance to be "far".
+    X(:,5) = 500;
+                                  
     mdp = MDP(concentration, X, misc_data, cluster_assigns, class_prior);
     
 %    mdp = MDP(concentration, X, edge_G, cluster_assigns, feat_prior);
     
     % Hack: one uniform for (x,y) and another uniform for dimension 4 (the
-    % background Radon response) ... ; NO IT'S BORKED!
+    % background Radon response)
     mdp.cluster_likes{1} = ProductDistribution(1, 2, Uniform(size(X, 1)), ...
                                                3, 3, background, ...
                                                4, 4, Uniform(1), ... % Domain [0, 1]

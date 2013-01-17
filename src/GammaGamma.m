@@ -76,7 +76,7 @@ classdef GammaGamma < OnlineDistribution
             log_top = o.post_shape * log(o.post_rate) + (o.shape - 1) * log(X);
             log_bot = betaln(o.shape, o.post_shape) + (o.shape + o.post_shape) * log(o.post_rate + X);
             
-            p = exp(log_top - log_bot);                        
+            p = exp(log_top - log_bot);                  
         end
     
     end

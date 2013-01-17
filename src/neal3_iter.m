@@ -35,10 +35,11 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
         % New cluster
         x_pdf(end) = prior_pred_like(n);                
         
+        % HACK
         for k = 1:mdp.n_clusters
             mdp = refit_graph_dist(mdp, x_max, y_max, k_old);
             assert(length(mdp.misc_data.slic_inds{end}) > 1);
-            x_pdf(k) = mdp.cluster_likes{k}.pred_like_scalar(mdp.X(n,:));
+            x_pdf(k) = mdp.cluster_likes{k}.pred_like_scalar(mdp.X(n,:));            
         end
         
         pdf = z_pdf .* x_pdf;

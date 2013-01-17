@@ -17,8 +17,13 @@ function [ mdp ] = refit_graph_dist( mdp, x_max, y_max, k )
         % Compute superpixel distances
         my_slic = mdp.misc_data.segments(s);
         slic_dist = graphshortestpath(mdp.misc_data.edge_G, my_slic, 'Directed', false)';
-        % Censor Inf
-        cap = 10000;
+        
+        % Soften Inf: If pixel s cannot reach pixel i, slic_dist(i) will be
+        % Inf. This will mess up probabilities, but we want at least some
+        % probability of assigning s and i to the same cluster to mix.
+        
+        % This is twice the prior mean, an arbitrary choice as good as any.        
+        cap = 500;
         slic_dist = min(cap, slic_dist);        
         
         dist = zeros(mdp.N, 1);
@@ -31,8 +36,10 @@ function [ mdp ] = refit_graph_dist( mdp, x_max, y_max, k )
             dist(mdp.misc_data.slic_inds{n_slic}) = slic_dist(n_slic);        
         end
         
-        % But for all points in our same slic, set distance to zero.
-        dist(mdp.misc_data.slic_inds{my_slic}) = 0;
+        % But for all points in our same slic, set distance to zero. Well,
+        % not really zero, since we'll evaluate with a Gamma (exponential)
+        % distribution.
+        dist(mdp.misc_data.slic_inds{my_slic}) = 1e-10;
                 
         %mdp.X(:,5) = dist;
         
