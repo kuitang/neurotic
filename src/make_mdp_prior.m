@@ -31,7 +31,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     %% Construct objects
         
     feature_prior  = NormalWishart(prior_mean, prior_cov, prior_dof, prior_n);
-    distance_prior = GammaGamma(1, 1, 10);    
+    distance_prior = GammaGamma(1, 10, 1000);    
     
     class_prior = ProductDistribution(1, 4, feature_prior, ...
                                       5, 5, distance_prior);
@@ -39,7 +39,9 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     % Hack: low probabilities when plugged into NormalGamma.
     % Interpretation: when starting a new cluster, take its Dijkstra
     % distance to be "far".
-    X(:,5) = 500;
+    
+    % Near = 1e-10, Far = 500, Intermediate = between
+    X(:,5) = 10;
                                   
     mdp = MDP(concentration, X, misc_data, cluster_assigns, class_prior);
     

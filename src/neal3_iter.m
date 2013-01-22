@@ -37,10 +37,24 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
         
         % HACK
         for k = 1:mdp.n_clusters
-            mdp = refit_graph_dist(mdp, x_max, y_max, k_old);
+            X5_before = mdp.X(:,5);
+            mdp = refit_graph_dist(mdp, x_max, y_max, k);
             assert(length(mdp.misc_data.slic_inds{end}) > 1);
-            x_pdf(k) = mdp.cluster_likes{k}.pred_like_scalar(mdp.X(n,:));            
-        end
+            x_pdf(k) = mdp.cluster_likes{k}.pred_like_scalar(mdp.X(n,:));
+            
+            if k > 1 && mdp.misc_data.segments(k) ~= mdp.misc_data.segments(k_old)
+                % Unless k and k_old belong to the same superpixel, make
+                % sure that the graph distance actually changed.            
+                if all(mdp.X(:,5) == X5_before)
+                    warning('No edge distances changed');                                            
+                end
+            end
+            
+            if k > 1 && mod(actual_n, 1000) == 0
+                h = figure(3);
+                plot_graph_edge_dist(h, k, mdp, x_max, y_max);
+            end
+        end        
         
         pdf = z_pdf .* x_pdf;
         
@@ -58,7 +72,7 @@ function [ mdp, state, ll ] = neal3_iter( mdp, state, params )
         actual_n = actual_n + 1;
         if mod(actual_n, 1000) == 0
             disp(['actual_n = ' num2str(actual_n)]);
-            disp(['x_pdf = ' num2str(x_pdf')]);
+            disp(['x_pdf = ' num2str(x_pdf')]);            
         end
         
         ll = ll + log(pdf(k_new));

@@ -1,5 +1,7 @@
 function [ samples ] = run_mdp( iter_f, state, params, X, img, mdp, niters, burn_in, sample_freq )
 
+    [x_max, y_max] = size(img);
+
     loglike = zeros(niters, 1);    
     img_h = figure(1);    
     set(img_h, 'Units', 'normalized', 'position', [0.1 0.1 1 0.4]);
@@ -7,8 +9,12 @@ function [ samples ] = run_mdp( iter_f, state, params, X, img, mdp, niters, burn
     
     hist_h = figure(2);
     set(hist_h, 'Units', 'normalized', 'position', [0 0.5 1 0.4]);
-    clf;    
+    clf;  
     
+    dist_h = figure(3);
+    set(dist_h, 'Units', 'normalized', 'position', [0 0.7 1 0.4]);
+    clf;
+        
     for n = 1:niters
         tic                
         
@@ -28,7 +34,7 @@ function [ samples ] = run_mdp( iter_f, state, params, X, img, mdp, niters, burn
         
         if mod(n, sample_freq) == 0
             plot_intensity_hists(hist_h, mdp, X);            
-            plot_img(img_h, n, loglike, X, img, mdp);   
+            plot_img(img_h, n, loglike, X, img, mdp);            
             drawnow;
             
             if n > burn_in
