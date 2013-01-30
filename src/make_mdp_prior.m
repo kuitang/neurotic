@@ -4,7 +4,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     nY = max(X(:,2));
     
     %% Parameter priors
-    prior_mean = [100 100 0.75 0.4]; % mean of the nonzero entries
+    prior_mean = [100 100 0.6 0.3]; % mean of the nonzero entries
     
     prior_cov  = cov(X(:,1:4));
     
@@ -31,30 +31,41 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     %% Construct objects
         
     feature_prior  = NormalWishart(prior_mean, prior_cov, prior_dof, prior_n);
-    distance_prior = GammaGamma(1, 10, 1000);    
+    distance_underlying = GammaGamma(1, 5, 4);
     
+    
+    % HACK; to patch up later.
     class_prior = ProductDistribution(1, 4, feature_prior, ...
-                                      5, 5, distance_prior);
+                                      5, 5, distance_underlying);
     
     % Hack: low probabilities when plugged into NormalGamma.
     % Interpretation: when starting a new cluster, take its Dijkstra
     % distance to be "far".
+                                          
+    mdp = MDP(concentration, X, misc_data, cluster_assigns, class_prior);    
     
-    % Near = 1e-10, Far = 500, Intermediate = between
-    X(:,5) = 10;
-                                  
-    mdp = MDP(concentration, X, misc_data, cluster_assigns, class_prior);
+    distance_prior = GraphDistDistribution(distance_underlying);
+    distance_post  = GraphDistDistribution(mdp.cluster_likes{2}.pdfs{2});
+        
+    distance_prior.mdp = mdp;
+    distance_post.mdp = mdp;
+    distance_prior.misc_data = misc_data;        
+    distance_post.misc_data = misc_data;
     
-%    mdp = MDP(concentration, X, edge_G, cluster_assigns, feat_prior);
+    distance_post.my_k = 2;
+    
+    % Hack: plug back in the distance underlying. mdp.prior is a
+    % ProductDistribution
+    mdp.prior.pdfs{2} = distance_prior;
+    mdp.cluster_likes{2}.pdfs{2} = distance_post;        
     
     % Hack: one uniform for (x,y) and another uniform for dimension 4 (the
     % background Radon response)
     mdp.cluster_likes{1} = ProductDistribution(1, 2, Uniform(size(X, 1)), ...
                                                3, 3, background, ...
                                                4, 4, Uniform(1), ... % Domain [0, 1]
-                                               5, 5, Uniform(500)); % Domain essentially 500
-    mdp.refit(1);
-    mdp.refit(2);
+                                               5, 5, Uniform(1)); % Domain essentially 1        
+    
     %[particles, weights] = smc_init(mdp, ProductDistribution(1, 2, Uniform(size(X, 1)), 3, 3, background));
     
     % We will take the MODE assignment. (Wait, fuck it, the model need not

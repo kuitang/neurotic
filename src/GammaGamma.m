@@ -43,12 +43,14 @@ classdef GammaGamma < OnlineDistribution
             o.data_n = length(X);
             o.post_shape = o.prior_shape + o.data_n * o.shape;
             o.post_rate  = o.prior_rate  + sum(X);
+            assert(o.post_rate > 0);
         end
         
         function add_point(o, x)
             o.data_n = o.data_n + 1;
             o.post_shape = o.post_shape + o.shape;
             o.post_rate  = o.post_rate  + x;
+            assert(o.post_rate > 0);
         end
         
         function remove_point(o, x)
@@ -59,26 +61,39 @@ classdef GammaGamma < OnlineDistribution
                 o.data_n = o.data_n - 1;
                 o.post_shape = o.post_shape - o.shape;
                 o.post_rate  = o.post_rate - x;
+                assert(o.post_rate > 0);
             end            
+        end
+        
+
+        
+        % Double check the paper with this
+        function xs = sample_prior(o, n)
+            rate = gamrnd(o.prior_shape, 1 / o.prior_rate);
+            xs = gamrnd(o.prior_shape, 1 / rate, n, 1);
+        end
+        
+        function p = pred_like_scalar(o, X)            
+            % Dubey (1.1)
+            if X == 0 % avoid log(0)
+                log_top_part = o.post_shape * log(o.post_rate);
+                log_bot_part = betaln(o.shape, o.post_shape) + (o.shape + o.post_shape) * log(o.post_rate + X);
+                p = exp(log_top_part - log_bot_part);
+                % Important
+                p = p * 0^(o.shape - 1);
+            else
+                log_top = o.post_shape * log(o.post_rate) + (o.shape - 1) * log(X);
+                log_bot = betaln(o.shape, o.post_shape) + (o.shape + o.post_shape) * log(o.post_rate + X);
+            
+                p = exp(log_top - log_bot);                  
+            end
         end
         
         function p = pred_like(o, X)
         % Predictive likelihood (compound gamma). X can be a vector.
             % Dubey (1.1)
-            log_top = o.post_shape * log(o.post_rate) + (o.shape - 1) * log(X);
-            log_bot = betaln(o.shape, o.post_shape) + (o.shape + o.post_shape) * log(o.post_rate + X);
-            
-            p = exp(log_top - log_bot);
+            p = o.pred_like_scalar(X);            
         end
-        
-        function p = pred_like_scalar(o, X)
-            % Dubey (1.1)
-            log_top = o.post_shape * log(o.post_rate) + (o.shape - 1) * log(X);
-            log_bot = betaln(o.shape, o.post_shape) + (o.shape + o.post_shape) * log(o.post_rate + X);
-            
-            p = exp(log_top - log_bot);                  
-        end
-    
     end
     
 end

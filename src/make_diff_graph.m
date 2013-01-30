@@ -12,7 +12,14 @@ function [ segments, slic_inds, edge_G ] = make_diff_graph( img, slic_npixels, s
     [X, Y] = size(img);
     
     % vl_slic returns 0-indexed; we want 1-indexed.
-    segments = vl_slic(single(img), slic_npixels, slic_reg) + 1;        
+    segments = vl_slic(single(img), slic_npixels, slic_reg) + 1;
+    
+%     figure(15);
+%     imagesc(segments);
+    
+    mean_img = showslic(segments, img);
+%     figure(16);
+%     imshow(mean_img);
     
     assert(min(segments(:)) > 0);
     Nslic = max(segments(:));            
@@ -28,43 +35,47 @@ function [ segments, slic_inds, edge_G ] = make_diff_graph( img, slic_npixels, s
         inds = uint32(find(segments(:) == n));
         slic_inds{n} = inds;
         
-        neighbor_w = zeros(Nslic, 1);
-        neighbor_n = zeros(Nslic, 1);
+        neighbor_w = zeros(Nslic, 1);        
         
         for ind = inds'
-            [r, c] = ind2sub(sz, ind);
-            
-            % Only consider the lower triangular
-            if r > c
+            [r, c] = ind2sub(sz, ind);           
                 
-                % Explore the neighborhood
-                for dr = [-1 1]
-                    for dc = [-1 1]
-                        if (r + dr > 1 && r + dr < Y) && (c + dc > 1 && c + dc < X)
-                            other_n = segments(r + dr, c + dc);                    
+            % Explore the neighborhood
+            for dr = [-1 1]
+                for dc = [-1 1]
+                    if (r + dr > 1 && r + dr < Y) && (c + dc > 1 && c + dc < X)
+                        other_n = segments(r + dr, c + dc);                    
 
-                            if other_n > 0
-                                neighbor_w(other_n) = neighbor_w(other_n) + ...
-                                                      abs(img(r + dr, c + dc) - img(r, c));
-                                neighbor_n(other_n) = neighbor_n(other_n) + 1;
-                            end
+                        % CHECK THIS LINE... earlier you asserted other_n >
+                        % 0; should really check if its a different
+                        % segment.
+                        %
+                        % Should really take difference between superpixel
+                        % means.
+                        if other_n ~= n
+                            neighbor_w(other_n) = abs(mean_img(r + dr, c + dc) - mean_img(r, c));
+                                                        
+%                             if abs(mean_img(r + dr, c + dc) - mean_img(r, c)) > 0.05
+%                                 neighbor_w(other_n) = 1;
+%                             else
+%                                 neighbor_w(other_n) = 0.01;
+%                             end                                                        
                         end
                     end
-                end   
-                            
-                % Now add edges                
-                neighbor_idxs = find(neighbor_w);
-                
-                next_nedge = nedge + length(neighbor_idxs);
-                ivec(nedge:(next_nedge-1)) = n;
-                jvec(nedge:(next_nedge-1)) = neighbor_idxs;
-                svec(nedge:(next_nedge-1)) = neighbor_w(neighbor_idxs);
-                
-                % Prepare for next iteration
-                nedge = next_nedge;
+                end
             end
-
         end
+
+        % Now add edges                
+        neighbor_idxs = find(neighbor_w);
+
+        next_nedge = nedge + length(neighbor_idxs);
+        ivec(nedge:(next_nedge-1)) = n;
+        jvec(nedge:(next_nedge-1)) = neighbor_idxs;
+        svec(nedge:(next_nedge-1)) = neighbor_w(neighbor_idxs);
+
+        % Prepare for next iteration
+        nedge = next_nedge;        
     end
 
     % Squeeze nonzeros

@@ -5,17 +5,22 @@ function [ h ] = plot_graph_edge_dist( h, k, mdp, x_max, y_max )
     % This will show results from the most recent k
     figure(h);
         
-    subplot(1, mdp.n_clusters, k);
-
+    subplot(2, mdp.n_clusters, k);
     dist = mdp.X(:,5);
     dist_img = reshape(dist, x_max, y_max);
 
     % Transform the column major to row major
-    dist_img = dist_img';
+    %
+    % That's a lie... 
+    %
+    %dist_img = dist_img';
     imshow(dist_img, [min(dist) max(dist)]);
 
     hold on;            
     scatter(mdp.cluster_likes{k}.pdfs{1}.post_mean(1), ...
             mdp.cluster_likes{k}.pdfs{1}.post_mean(2), 'filled');
     hold off;                   
+    
+    subplot(2, mdp.n_clusters, mdp.n_clusters + k);
+    hist(dist, 100);    
 end

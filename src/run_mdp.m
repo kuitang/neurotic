@@ -11,9 +11,9 @@ function [ samples ] = run_mdp( iter_f, state, params, X, img, mdp, niters, burn
     set(hist_h, 'Units', 'normalized', 'position', [0 0.5 1 0.4]);
     clf;  
     
-    dist_h = figure(3);
-    set(dist_h, 'Units', 'normalized', 'position', [0 0.7 1 0.4]);
-    clf;
+%     dist_h = figure(30);
+%     set(dist_h, 'Units', 'normalized', 'position', [0 0.7 1 0.4]);
+%     clf;
         
     for n = 1:niters
         tic                
@@ -27,7 +27,9 @@ function [ samples ] = run_mdp( iter_f, state, params, X, img, mdp, niters, burn
         rate     = mdp.N / itertime;
         
         fprintf(1, 'Iter %d: time = %0.2f; speed = %.2f; K = %d, change = %0.3f; loglike = %06.2f\n', ...
-                n, itertime, rate, mdp.n_clusters, change, ll);        
+                n, itertime, rate, mdp.n_clusters, change, ll);       
+        disp(mdp.cluster_counts)
+        
 
         % Save the log-likelihood
         loglike(n) = ll;                

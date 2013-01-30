@@ -1,4 +1,4 @@
-function [ intx ] = radonLikeFeatures( imo, use_raw_imo, res, extract_func )
+function [ intx ] = radonLikeFeatures( imo, use_raw_imo, res, canny_thresh, extract_func )
 %radonLikeFeatures Generate radon-like features from scan segments
 %
 % intx = radonLikeFeatures(imo, res, extract_fun) given [X Y] image imo,
@@ -48,11 +48,11 @@ function [ intx ] = radonLikeFeatures( imo, use_raw_imo, res, extract_func )
     end
 
     %set the boundary to be 0 -- NO; SET IT TO BE WHITE!
-    imo(1,:) = 0;imo(imro,:)=0;imo(:,1) = 0;imo(:,imco)=0;
-    knot_imo(1,:) = 0;knot_imo(imro,:)=0;knot_imo(:,1) = 0;knot_imo(:,imco)=0;
+    imo(1,:) = 1;imo(imro,:)=1;imo(:,1) = 1;imo(:,imco)=1;
+    knot_imo(1,:) = 1;knot_imo(imro,:)=1;knot_imo(:,1) = 1;knot_imo(:,imco)=1;
 
     %set the knots
-    edo = edge(knot_imo,'canny',0.37);    
+    edo = edge(knot_imo,'canny',canny_thresh);    
     
     dumo = ones(imro,imco);% helper matrix to keep track of ROI
 

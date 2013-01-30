@@ -31,8 +31,9 @@ function [ h ] = plot_intensity_hists( h, mdp, X )
         subplot(3, K, 2*K + k);
         
         if k ~= 1
-            xxs = linspace(eps, 500, 100);
-            plot(xxs, mdp.cluster_likes{k}.pdfs{2}.pred_like_scalar(xxs));
+            %xxs = linspace(eps, 500, 100);
+            %plot(xxs, mdp.cluster_likes{k}.pdfs{2}.underlying.pred_like_scalar(xxs));
+            hist(mdp.cluster_likes{k}.pdfs{2}.empirical_distribution());
         end            
         
     end    

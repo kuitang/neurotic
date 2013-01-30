@@ -65,15 +65,8 @@ classdef MDP < matlab.mixin.Copyable
                     o.cluster_counts = accumarray(cluster_assigns(nzidxs), ones(o.N, 1));            
 
                     for k = 1:o.n_clusters
-                        idxs = cluster_assigns == k;
-                                                
-                        o.cluster_likes{k} = copy(prior);
-                        
-                        % TEST -- did we actually copy?
-                        prior.pdfs{2}.data_n = 999;
-                        assert(o.cluster_likes{k}.pdfs{2}.data_n ~= 999);
-                        prior.pdfs{2}.data_n = 0;
-                        
+                        idxs = cluster_assigns == k;                                                
+                        o.cluster_likes{k} = copy(prior);                                                
                         o.cluster_likes{k}.fit(X(idxs,:));                        
                     end
                 end
@@ -112,6 +105,14 @@ classdef MDP < matlab.mixin.Copyable
                 % New
                 dist = copy(o.prior);                
                 o.assign_to_new(n, dist);
+                
+                % HACK: Tell
+                % We can't use isfield, which works only for struct.
+                % (MATLAB sucks)
+                if find(ismember(fieldnames(dist.pdfs{2}), 'my_k')==1) > 0
+                    dist.pdfs{2}.my_k = k;
+                end                
+                
                 dist.fit(o.X(n,:));
             else
                 % Existing
@@ -164,6 +165,15 @@ classdef MDP < matlab.mixin.Copyable
             gtidxs = o.cluster_assigns > k;
             o.cluster_assigns(gtidxs) = o.cluster_assigns(gtidxs) - 1;
             o.n_clusters = o.n_clusters - 1;
+            
+            % Update the my_k's
+            for kk = k:o.n_clusters
+                if kk > 1
+                    assert(o.cluster_likes{kk}.pdfs{2}.my_k - 1 == kk, ...
+                           'GraphDist my_k precondition failed');
+                    o.cluster_likes{kk}.pdfs{2}.my_k = kk;
+                end
+            end
             
             assert(length(o.cluster_counts) == o.n_clusters && ...
                    length(o.cluster_likes) == o.n_clusters, 'bad removal in kill_cluster');
