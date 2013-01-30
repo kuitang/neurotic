@@ -70,7 +70,7 @@ classdef GammaGamma < OnlineDistribution
         % Double check the paper with this
         function xs = sample_prior(o, n)
             rate = gamrnd(o.prior_shape, 1 / o.prior_rate);
-            xs = gamrnd(o.prior_shape, 1 / rate, n, 1);
+            xs = gamrnd(o.shape, 1 / rate, n, 1);
         end
         
         function p = pred_like_scalar(o, X)            

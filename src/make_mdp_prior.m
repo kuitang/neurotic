@@ -4,7 +4,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     nY = max(X(:,2));
     
     %% Parameter priors
-    prior_mean = [100 100 0.6 0.3]; % mean of the nonzero entries
+    prior_mean = [100 100 0.9 0.4]; % mean of the nonzero entries
     
     prior_cov  = cov(X(:,1:4));
     
@@ -26,7 +26,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     
     %% Initialize cluster assignments
     % Wood: assign them uniformly at random
-    cluster_assigns = initialize_one_cluster_and_background(0.99, 0.5, X);
+    cluster_assigns = initialize_one_cluster_and_background(0.99, 0.7, X);
     
     %% Construct objects
         
