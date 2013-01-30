@@ -17,7 +17,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     prior_cov(3,3) = 0.5 * v_intensity;
     prior_cov(4,4) = 0.5 * v_bg_radon;    
     
-    background = GammaGamma(1, 6, 2);
+    background = GammaGamma(1, 10, 5);
     
     prior_dof = 5;
     prior_n   = 0.5;
@@ -31,7 +31,7 @@ function [ mdp ] = make_mdp_prior( X, misc_data )
     %% Construct objects
         
     feature_prior  = NormalWishart(prior_mean, prior_cov, prior_dof, prior_n);
-    distance_underlying = GammaGamma(1, 5, 4);
+    distance_underlying = GammaGamma(1, 20, 10);
     
     
     % HACK; to patch up later.
