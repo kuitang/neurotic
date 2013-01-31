@@ -1,19 +1,22 @@
-\documentclass[draft]{article}
+\documentclass[draft,english]{article}
 \usepackage{fullpage}
+\usepackage{amsmath}
 
 \usepackage[draft]{fixme}
+\usepackage{babel}
+
+\newcommand{\+}[1]{\ensuremath{\boldsymbol{\mathrm{#1}}}}
 
 \begin{document}
 
 \listoffixmes
 
 \title{A Bayesian Nonparametric Approach to Neural Image Segmentation}
-
 \author{Kui Tang and Frank Wood}
 \date{\today}
 \maketitle
 \begin{abstract}
-We \fxfatal*{we don't really develop; what the best verb?}{develop} a Bayesian nonparametric method to segment neurons in electron micrograph images of brain tissue. Our model imposes spatial locality on arbitrary features, automatically determines the number of cells in an image, and can be used in both unsupervised and semi-supervised settings. We model the distribution of neurons in an image as an infinite Gaussian mixture model. Each neuron's pixels are characterized by likelihood function that is a combination of multivariate Gaussian and naive Bayes features. Using data collected by Kasthuri et al., we show that our model can obtain plausible segmentations with no training data, while receiving a significant boost in its presence.
+We develop a Bayesian nonparametric method to segment neurons in electron micrograph images of brain tissue. Our model imposes spatial locality on arbitrary features, automatically determines the number of cells in an image, and can be used in both unsupervised and semi-supervised settings. We model the distribution of neurons in an image as an infinite Gaussian mixture model. Each neuron's pixels are characterized by likelihood function that is a combination of multivariate Gaussian and naive Bayes features. Using data collected by Kasthuri et al., we show that our model can obtain plausible segmentations with no training data, while receiving a significant boost in its presence.
 
 \section{Introduction}
 A new branch of computational neuroscience, \emph{connectomics}, aims to reconstruct the physical location and circuit connectivity of the brain. Recent advances in electron microscopy have produced images of 10 nm in the lateral plane and 50 nm in the vertical plane, sufficient detail to capture most of even the smallest neural processes~\cite{Briggman2006}. The scale of the data is profound; the human brain is estimated to contain 100 billion neurons connected by up to a quadrillion synapses~\cite{Kasthuri2010}. Like the human genome project before, it is clear that automated methods are needed to map the connectome.
@@ -26,12 +29,69 @@ Automated techniques generally begin by segmenting a 2D slice based on cell memb
 
 \section{Model and Methods}
 
-\fxfatal{Obtain more information about this dataset, particularly stain protocol, and put in the right place.}
+\fxfatal{What microscopy method did they use? and put in the right place.}
 We analyzed a  volume of mouse visual cortex of resolution $3 \times 3 \times 30 \mbox{ nm}^3$ collected by \fxfatal{Unpublished; to cite}{Kasthuri et al.}
 
-\fxfatal{Frank's notes: Think of your initial reaction of "wth are all these features?" What?! Spatial coordinates for GMM?}
+An image is composed of pixels, which immediately offer three features: $x$- and $y$- coordinates, and intensity (normalized to $[0,1]$). One way to segment cells is to model pixels with a Gaussian mixture model (GMM). Each cluster represents one cell, and each pixel's mixture weights represent the probability that of membership in a given cell. This approach would work well if (1) the number of cells in an image are known \emph{a priori} (2) pixels intensities are homogeneous within cells; and (3) pixels belonging to a cell occupy a continuous area.
 
-We model each pixel as feature vector $\mathbf{x}_n = (x_n, y_n, \phi_{1n}, \ldots, \phi_{mn})$. The first two dimensions encode the $x$ and $y$ coordinates of the pixel in order to provide spatial smoothing, while $\phi_{\cdot n}$ represent feature responses. Our model can handle arbitrary features, but in this paper, we will put pixel intensity in $\phi_{1\cdot} \in [0,1]$. Because cell interiors contain diverse structures, intensities values within a cell vary widely, so relying on $\phi_{1\cdot}$ alone oversegments. To reduce oversegmentation, we compute a cel boundary Radon-like feature for $\phi_{1\cdot}$, which homogenizes pixel intensities within a given cell~\cite{Kumar2010}. One computes Radon-like functions by taking line integrals of a kernel function along various scanning orientations, broken piecewise at image discontinuities. By varying the kernel, different structures and boundaries are enhanced. We follow Kumar's approach of averaging the integrals along each scan orientation to obtain a scalar response at each pixel. Finally, recall that our background class ($k = 1$) contains all pixels belonging on the cell membrane or in intracellular space. We penalize points
+We present our model in section~ref{sec:model}. The rest of the subsections explain how we overcome these difficulties. First, the number of cells must be inferred from the image itself. To do so, we employ a Mixture Dirichlet process, discussed in section~\ref{sec:mdp}. Further, the visual complexity and noise of electron micrograph images do not yield the clear separations required for assumptions 2 and 3. We fix this with Radon-like features to separate cell interiors and boundaries in section~\ref{sec:radon}, and constrain cluster assignments with a geodesic distance that penalizes boundary crossings in section~\ref{sec:geodesic}.
+
+\subsection{Model}
+\ref{sec:model}
+In summary, pixel $i$ has feature vector $\+{x}_n = (x_n, y_n, r_n, f_n, \+{d}_n)$ where $x_n, y_n$ represent the pixel's spatial coordinates, $r_n \in [0,1]$ is the raw pixel intensity, $f_n \in [0,1]$ is the average response of the interior Radon-like feature, and $\+{d}_n \in \+{R}^N$ is a vector of geodesic distances  to every other pixel. The first four components, $\+{x}_{n,1:4}$ obey a multivariate normal distribution while the  Putting these components together yields the model in Figure~\ref{fig:model}. The generative story is:
+\begin{itemize}
+\item $\+\pi \sim \mbox{DirichletProcess}(\alpha)$
+\item $k | \+\pi \sim \mbox{Discrete}(\+\pi)$
+\item If $k$ is a new (empty) cluster:
+  \begin{itemize}
+  \item $\Lambda_k | T, \nu \sim \mbox{Wishart}(\Lambda | T, \nu)$ (in the notation of \cite{Murphy2003})
+  \item $\+\mu_k | \kappa , \Lambda_k \sim \mathcal{N}\left( \+\mu_k | \+\mu_0 , (\kappa\Lambda)^{-1} \right)$
+  \item $\beta_k \sim \mbox{Gamma}(\beta_k | \alpha_0, \beta_0)$
+  \end{itemize}
+\item $\+x | \+\mu_k , \Lambda_k, \beta_k \propto \mathcal{N}(\+x_{1:4} | \+\mu_k , \Lambda_k) \mbox{Exponential}\left( d(\+x_{1:2}, \+\mu_{k,1:2}) | \mbox{rate} = \beta_k \right)$ (in the notation of section~\ref{sec:geodesic})
+\end{itemize}
+
+\subsection{Mixture Dirichlet Processes}
+\label{sec:mdp}
+We begin with a finite mixture model shown in Figure~\ref{fig:finitemix} and derive the mixture Dirichlet process as a limiting case. This follows the derivation first given by \cite{Rasmussen2000}.
+
+The $N$ observations are divided among $K$ classes. We record the class membership of $\+{x}_n$ with a latent indicator $z_n \in \{1, \ldots, K \}$. Given a class assignment $z_n = k$, we assume $x_n$ is drawn from a distribution $F(\+{x}|\Theta_k)$ where $\Theta_k$ is a vector of parameters. Therefore, a mixture model gives each class its own parameter vector, but assumes that observations are conditionally independent given a class.
+
+The indicators $z_n$ are drawn from the discrete distribution $\+\pi$, a $K$-dimensional vector which is in turn is drawn from a symmetric Dirichlet distribution parameterized by $\alpha$: $$p \left( \+\pi | \alpha, K \right) = \frac{ \Gamma ( \alpha ) }{ \Gamma ( \alpha/K ) ^K} \prod_{k=1}^K \+\pi_k^{\alpha/K - 1}.$$ Because the Dirichlet and discrete distributions are conjugate, we can marginalize $\+\pi$. Let $\+{z}_{-n}$ denote the vector of all indicators excluding element $n$ and $N_{k,-n}$ denote the number of points assigned to class $k$ excluding point $n$. A standard result \fxfatal{CITATION} yields the posterior $$p(z_n = k | \+{z}_{-n})  = \frac{ N_{k,-n} + \alpha/K }{ N - 1 + \alpha }$$ which makes Gibbs sampling easy.
+
+Now consider $K \rightarrow \infty$. First, the term $\alpha / K \rightarrow 0$. Given finitely many observations, we have only finitely many components $k$ with $N_{k,-n} > 0$. Therefore, the density 
+\[
+p(z_{n}=k|\+{z}_{-n},\alpha)=\begin{cases}
+\frac{N_{k,-n}}{N-1+\alpha} & N_{k,-n}>0\\
+\frac{\alpha}{N-1+\alpha} & \mbox{otherwise}
+\end{cases}
+\]
+satisfies the limiting conditions and correctly normalizes to 1 when summed with $k = 1, \ldots, \infty$. We now say that the mixing distribution $\+\pi$, which is now infinite-dimensional, is drawn from a \emph{Dirichlet process}. Since conjugacy allows us to eliminate $\+\pi$ from computations, Gibbs sampling from an infinite mixture is just as efficient as for a finite mixture case.
+
+\subsection{Radon-like Features}
+\label{sec:radon}
+Ideally, for a mixture model, pixel intensities within a cell should be homogeneous. But the diversity of intracellular structures and significant imaging noise yield data far from this ideal. As a countermeasure, we augment raw pixel intensities with $\emph{Radon-like feature}$ responses, which have proven useful for connectomics segmentation \cite{Kumar2010}. \fxfatal{Make this clearer... Even the original paper doesn't have a concise description}. A Radon-like feature aggregates a function of image intensity over regions defined by structural constraints, such as edges. Each feature is measured from a single direction, which we can represent as a \emph{scan line} $\+{l}(t) : [0, 1] \rightarrow \+{R}^2$. We represent the structure information as a set of points $\{ t_1, \ldots, t_m \}$ along line $\+{l}$. We follow the practice in \cite{Kumar2010} to evaluate Radon-like features along uniform angular intervals (we find 72 to avoid most discretization artifacts) and take the mean response from all directions. Of course, using the entire vector of feature responses with a multivariate likelihood is also possible. Moreover, in \cite{Kumar2010} as well as this paper, we will use the filter response $$R(x,y) = \max_{\sigma, \phi} \Delta G(\sigma, \phi) \ast I(x,y) $$ where $\Delta G(\sigma, \phi)$ is the Gaussian second derivative filter at scale $\sigma$ and orientation $\phi$. We use $R$ to (1) obtain knots, by passing to a Canny edge mapper, and (2) use as input to extraction functions (discussed below). Unlike other methods, we use the noisy edge response only as a guide for additional feature extraction, not as a testimony for the cell segments themselves.
+
+Let $T(I, x, y)$ be an $\emph{extraction function}$ which maps an image and $xy$-coordinates to a scalar. Suppose a line $\+{l}$ is given and $(x, y) = \+{l}(t)$ for some $t \in [t_i, t_{i+1}]$. Then the Radon-like response for image $I$ at $(x, y)$ in direction $\+{l}$ is given by $$\Psi \left( I,\+{l},t \right) = T \left( I, \+{l}(t) \right).$$ We will use the extraction function for cell background segmentation $$T_{\mbox{bg}}(I, \+{l}(t)) = \min_{t \in [t_i, t_{i+1}]} \left\{ I \left( \+{l}(t) \right) \right\}$$ which simply returns the dimmest pixel between any two knots \cite{Kumar2010}. Because knots denote edges, this feature tends to homogenize pixel intensities within a cell.
+
+Finally, we want pixels to not cross cell boundaries. The first step in encoding this constraint is to use a boundary-enhancing extraction function \cite{Kumar2010} $$T_{\mbox{bd}} = \frac{\int_t^{t+1} R\left( \+{l}(\tau) \right) d\tau }{\left\Vert \+{l}(t_{i+1}) - \+{l}(t_{i}) \right\Vert_2 }.$$ This function assigns to each pixel the average value of the Gaussian second-derivative response. Recall that the GSD tends to enhance boundaries, the most salient of which are captured by the Canny detector as knots. Thus, $T_{\mbox{bd}}$ smoothes the spurious GSD responses, avoiding oversegmentation. \fxfatal{Tighten up wording here}. Further, in connectomics data, cell membranes tend to form thick boundaries. But classic edge detectors work best at single-pixel gradients and return two edges for a thick boundary. \fxfatal{cite Rafael}. In particular, the Canny detector produces two knots on either side of a cell boundary. In the GSD response $R$, cell boundaries are consistently bright, so the integral in $T_{\mbox{bd}}$ returns a distinctly brighter response on boundaries, regardless of thickness. We use this boundary enhancement information in the next section.
+
+\subsection{Geodesic Distance}
+\label{sec:geodesic}
+Figure~\ref{fig:radon_bd} illustrates that cells need not be elliptical, or even convex. All that can be said is that they are contained in a closed loop that is generally gives a distinct Radon-like boundary response. Therefore, shape constraints based on Euclidean distances are not justified. Instead, we define a \emph{geodesic distance}. Construct a graph whose vertices are the pixels and undirected edge for adjacent pixels ($(x,y)$ is an edge if $y$ is in the 1-pixel neighborhood of $x$). Each edge has a weight $w(i,j) = \left| b_i - b_j \right|$ where $b_k$ is the boundary Radon-like response at pixel $k$. We define $d(\+{x}_i, \+{x}_j)$ to be the total weight of the shortest path between pixels $i$ and $j$, which is computed with Johnson's algorithm. In practice, the $O(N^2)$ storage is prohibitive, so we instead we downsample the image into SLIC superpixels \cite{Achanta2012} and compute superpixel-based distances.Address practical concerns. Further, because individual cells are tiny relative to an entire slice, only local distances are needed, because far points must be outside the current cell. All paths crossing a cell boundary must traverse pixels with low, high, and again low boundary feature responses. Thus, the shortest path wil also be one with a high weight. So if pixels $i$ and $j$ do not belong to the same cell, defined by the region enclosed by a loop of pixels with high boundary feature response, then $d(\+{x}_i, \+{x}_j)$ is high.
+
+Recall that the cluster mean contains entries for the $xy$-coordinates $\+{\mu}_{k,1:2} = (\mu_{k,x}, \mu_{k,y})$. Fix a point $n$ and a cluster $k$. Then $d(\+{x}_n, \+{\mu}_{k,1:2})$ is exponentially distributed, favoring distances close to zero. Any point one the opposite side of a boundary from the cluster's center will be far away from zero, and hence have low probability. Geodesic distances to other points are ignored.
+
+We model a two-dimensional image as an infinite semi-Gaussian mixture model. This extends the classic Gaussian mixture model (GMM) with (a) a variable number of classes and (b) additional naive-Bayes features associated with each class.
+
+
+\begin{enumerate}
+\item $\phi_{1\cdot} \in [0,1]$: pixel intensity 
+\item $\phi_{2\cdot} \in [0,1]$: average interior Radon-like feature response
+\item $\phi_{3\cdot} \in [0,1]$: geodesic distance  
+\item 
+\end{enumerate}
+ Because cell interiors contain diverse structures, intensities values within a cell vary widely, so relying on $\phi_{1\cdot}$ alone oversegments. To reduce oversegmentation, we compute a cel boundary Radon-like feature for $\phi_{1\cdot}$, which homogenizes pixel intensities within a given cell~\cite{Kumar2010}. One computes Radon-like functions by taking line integrals of a kernel function along various scanning orientations, broken piecewise at image discontinuities. By varying the kernel, different structures and boundaries are enhanced. We follow Kumar's approach of averaging the integrals along each scan orientation to obtain a scalar response at each pixel. Finally, recall that our background class ($k = 1$) contains all pixels belonging on the cell membrane or in intracellular space. We penalize points
 
 %, the cell Background Radon-like feature response in $\phi_{2\cdot}$, and the length of the shortest cluster path from $(
 

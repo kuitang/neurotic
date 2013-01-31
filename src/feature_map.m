@@ -4,7 +4,7 @@ function [ PHI, misc_data ] = feature_map( img )
     
     % Number of features
     D = 5;   
-    randon_angles = 72;
+    randon_angles = 180;
     canny_thresh = 0.25;
     
     PHI = zeros(N, D);
