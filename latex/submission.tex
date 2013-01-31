@@ -46,7 +46,7 @@ In summary, pixel $i$ has feature vector $\+{x}_n = (x_n, y_n, r_n, f_n, \+{d}_n
   \begin{itemize}
   \item $\Lambda_k | T, \nu \sim \mbox{Wishart}(\Lambda | T, \nu)$ (in the notation of \cite{Murphy2003})
   \item $\+\mu_k | \kappa , \Lambda_k \sim \mathcal{N}\left( \+\mu_k | \+\mu_0 , (\kappa\Lambda)^{-1} \right)$
-  \item $\beta_k \sim \mbox{Gamma}(\beta_k | \alpha_0, \beta_0)$
+  \item $\beta_k \sim \mbox{Gamma}(\beta_k | \alpha_0, \mbox{rate} = \beta_0)$
   \end{itemize}
 \item $\+x | \+\mu_k , \Lambda_k, \beta_k \propto \mathcal{N}(\+x_{1:4} | \+\mu_k , \Lambda_k) \mbox{Exponential}\left( d(\+x_{1:2}, \+\mu_{k,1:2}) | \mbox{rate} = \beta_k \right)$ (in the notation of section~\ref{sec:geodesic})
 \end{itemize}
