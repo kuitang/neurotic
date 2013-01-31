@@ -2,22 +2,22 @@ TARGETS=paragraphs.pdf slides.pdf submission.pdf
 all: $(TARGETS)
 
 paragraphs.pdf: paragraphs.tex refs.bib
-	pdflatex paragraphs.tex
+	pdflatex -interaction batchmode paragraphs.tex
 	bibtex paragraphs.aux
-	pdflatex paragraphs.tex
-	pdflatex paragraphs.tex
+	pdflatex -interaction batchmode paragraphs.tex
+	pdflatex -interaction batchmode paragraphs.tex
 
 submission.pdf: submission.tex refs.bib
-	- pdflatex submission.tex
+	- pdflatex -interaction batchmode submission.tex
 	bibtex submission.aux
-	- pdflatex submission.tex
-	- pdflatex submission.tex
+	- pdflatex -interaction batchmode submission.tex
+	- pdflatex -interaction batchmode submission.tex
 
 slides.pdf: slides.tex refs.bib
-	pdflatex slides.tex
+	pdflatex -interaction batchmode slides.tex
 	bibtex slides.aux
-	pdflatex slides.tex
-	pdflatex slides.tex
+	pdflatex -interaction batchmode slides.tex
+	pdflatex -interaction batchmode slides.tex
 
 .PHONY: clean
 

@@ -1,6 +1,54 @@
 \documentclass[draft,english]{article}
 \usepackage{fullpage}
 \usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{tkz-base}
+\usetikzlibrary{shapes,decorations,shadows}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{decorations.shapes}
+\usetikzlibrary{fadings}
+\usetikzlibrary{patterns}
+\usetikzlibrary{calc}
+\usetikzlibrary{decorations.text}
+\usetikzlibrary{decorations.footprints}
+\usetikzlibrary{decorations.fractals}
+\usetikzlibrary{shapes.gates.logic.IEC}
+\usetikzlibrary{shapes.gates.logic.US}
+\usetikzlibrary{fit,chains}
+\usetikzlibrary{positioning}
+\usepgflibrary{shapes}
+\usetikzlibrary{scopes}
+\usetikzlibrary{arrows}
+\usetikzlibrary{backgrounds}
+\tikzset{latent/.style={circle,fill=white,draw=black,inner sep=1pt, 
+minimum size=20pt, font=\fontsize{10}{10}\selectfont},
+obs/.style={latent,fill=gray!33},
+const/.style={rectangle, inner sep=1pt},
+factor/.style={rectangle, fill=black,minimum size=5pt, inner sep=1pt},
+>={triangle 45}}
+
+\pgfdeclarelayer{b}
+\pgfdeclarelayer{f}
+\pgfsetlayers{b,main,f}
+
+\newcommand{\plate}[4]{
+\begin{pgfonlayer}{b}
+\node (invis#1) [draw, color=white, inner sep=6pt,rectangle,fit=#2] {};
+\end{pgfonlayer}\begin{pgfonlayer}{f}
+\node (capt#1) [ below left=0 pt of invis#1.south east, xshift=1pt,yshift=1pt] {\footnotesize{#3}};
+\node (#1) [draw,inner sep=1pt, rectangle,fit=(invis#1) (capt#1),#4] {};
+\end{pgfonlayer}
+}
+
+
+\newcommand{\shiftedplate}[5]{
+\begin{pgfonlayer}{b}
+\node (invis#1) [draw, color=white, inner sep=0 pt,rectangle,fit=#2] {};
+\end{pgfonlayer}\begin{pgfonlayer}{f}
+\node (capt#1) [#5, xshift=2pt] {\footnotesize{#3}};
+\node (#1) [draw,inner sep=2pt, rectangle,fit=(invis#1) (capt#1),#4] {};
+\end{pgfonlayer}
+}
 
 \usepackage[draft]{fixme}
 \usepackage{babel}
@@ -27,18 +75,47 @@ All published connectomes have been manually labelled. White et al. published th
 \fxfatal{Write topic sentence, summarize your current literature review, and add paragraphs about feature engineering and graph pathfinding methods. Cite Malik's normalized cuts.}
 Automated techniques generally begin by segmenting a 2D slice based on cell membrane boundaries---a highly distinctive feature.
 
-\section{Model and Methods}
+\section{Model and Features}
 
 \fxfatal{What microscopy method did they use? and put in the right place.}
 We analyzed a  volume of mouse visual cortex of resolution $3 \times 3 \times 30 \mbox{ nm}^3$ collected by \fxfatal{Unpublished; to cite}{Kasthuri et al.}
 
 An image is composed of pixels, which immediately offer three features: $x$- and $y$- coordinates, and intensity (normalized to $[0,1]$). One way to segment cells is to model pixels with a Gaussian mixture model (GMM). Each cluster represents one cell, and each pixel's mixture weights represent the probability that of membership in a given cell. This approach would work well if (1) the number of cells in an image are known \emph{a priori} (2) pixels intensities are homogeneous within cells; and (3) pixels belonging to a cell occupy a continuous area.
 
-We present our model in section~ref{sec:model}. The rest of the subsections explain how we overcome these difficulties. First, the number of cells must be inferred from the image itself. To do so, we employ a Mixture Dirichlet process, discussed in section~\ref{sec:mdp}. Further, the visual complexity and noise of electron micrograph images do not yield the clear separations required for assumptions 2 and 3. We fix this with Radon-like features to separate cell interiors and boundaries in section~\ref{sec:radon}, and constrain cluster assignments with a geodesic distance that penalizes boundary crossings in section~\ref{sec:geodesic}.
+\begin{figure}
+\centering
 
-\subsection{Model}
-\ref{sec:model}
-In summary, pixel $i$ has feature vector $\+{x}_n = (x_n, y_n, r_n, f_n, \+{d}_n)$ where $x_n, y_n$ represent the pixel's spatial coordinates, $r_n \in [0,1]$ is the raw pixel intensity, $f_n \in [0,1]$ is the average response of the interior Radon-like feature, and $\+{d}_n \in \+{R}^N$ is a vector of geodesic distances  to every other pixel. The first four components, $\+{x}_{n,1:4}$ obey a multivariate normal distribution while the  Putting these components together yields the model in Figure~\ref{fig:model}. The generative story is:
+\begin{tikzpicture}
+\matrix[row sep=6mm, column sep=8mm, matrix anchor=mid] (mdp) {
+  \node (alpha) [const] {$\alpha$}; & & \\
+  \node (pi) [latent] {$\+\pi$}; & \node (beta) [latent] {$\beta_k$}; & \node (alphabeta) [const] {$\alpha_0, \beta_0$}; \\
+  \node (z) [latent] {$z_n$}; & \node(Lambda) [latent] {$\Lambda_k$}; & \node(Lambdanu) [const] {$\Lambda_0, \nu$}; \\
+  \node (x) [obs] {$\+x_n$}; & \node(mu) [latent] {$\+\mu_k$}; & \node(mukappa) [const] {$\+\mu_0, \kappa$}; \\
+};
+
+\draw [->] (alpha) -- (pi);
+\draw [->] (pi) -- (z);
+\draw [->] (z) -- (x);
+\draw [->] (alphabeta) -- (beta);
+\draw [->] (Lambdanu) -- (Lambda);
+\draw [->] (mukappa) -- (mu);
+\draw [->] (Lambda) -- (mu);
+\draw [->] (beta) -- (x);
+\draw [->] (Lambda) -- (x);
+\draw [->] (mu) -- (x);
+
+\plate{Nplate}{(z)(x)}{N}{}
+\plate{Kplate}{(beta)(Lambda)(mu)}{K}{}
+
+\end{tikzpicture}
+\caption{The graphical model} \label{fig:model}
+\end{figure}
+
+\label{sec:model}
+We present our model in Figure~\ref{fig:model}. Below, we explain our feature representation and how we overcome the aforementioned difficulties. First, the number of cells must be inferred from the image itself. To do so, we employ a Mixture Dirichlet process, discussed in section~\ref{sec:mdp}. Further, the visual complexity and noise of electron micrograph images do not yield the clear separations required for assumptions 2 and 3. We fix this with Radon-like features to separate cell interiors and boundaries in section~\ref{sec:radon}, and constrain cluster assignments with a geodesic distance that penalizes boundary crossings in section~\ref{sec:geodesic}.
+
+Pixel $i$ has feature vector $\+{x}_n = (x_n, y_n, r_n, f_n, \+{d}_n)$ where $x_n, y_n$ represent the pixel's spatial coordinates, $r_n \in [0,1]$ is the raw pixel intensity, $f_n \in [0,1]$ is the average response of the interior Radon-like feature, and $\+{d}_n \in \+{R}^N$ is a vector of geodesic distances to every other pixel. If position $\+p \in \+R^2$, when discretized, is the location of pixel $n$ and the discrete $\+q$ is the location of pixel $m$, then we write $d(\+p, \+q) = \+d_n,m$. Putting these components together yields the model in Figure~\ref{fig:model}. The generative story is:
+
 \begin{itemize}
 \item $\+\pi \sim \mbox{DirichletProcess}(\alpha)$
 \item $k | \+\pi \sim \mbox{Discrete}(\+\pi)$
@@ -46,7 +123,7 @@ In summary, pixel $i$ has feature vector $\+{x}_n = (x_n, y_n, r_n, f_n, \+{d}_n
   \begin{itemize}
   \item $\Lambda_k | T, \nu \sim \mbox{Wishart}(\Lambda | T, \nu)$ (in the notation of \cite{Murphy2003})
   \item $\+\mu_k | \kappa , \Lambda_k \sim \mathcal{N}\left( \+\mu_k | \+\mu_0 , (\kappa\Lambda)^{-1} \right)$
-  \item $\beta_k \sim \mbox{Gamma}(\beta_k | \alpha_0, \mbox{rate} = \beta_0)$
+  \item $\beta_k | \alpha_0, \beta_0 \sim \mbox{Gamma}(\beta_k | \alpha_0, \mbox{rate} = \beta_0)$
   \end{itemize}
 \item $\+x | \+\mu_k , \Lambda_k, \beta_k \propto \mathcal{N}(\+x_{1:4} | \+\mu_k , \Lambda_k) \mbox{Exponential}\left( d(\+x_{1:2}, \+\mu_{k,1:2}) | \mbox{rate} = \beta_k \right)$ (in the notation of section~\ref{sec:geodesic})
 \end{itemize}
@@ -78,24 +155,15 @@ Finally, we want pixels to not cross cell boundaries. The first step in encoding
 
 \subsection{Geodesic Distance}
 \label{sec:geodesic}
-Figure~\ref{fig:radon_bd} illustrates that cells need not be elliptical, or even convex. All that can be said is that they are contained in a closed loop that is generally gives a distinct Radon-like boundary response. Therefore, shape constraints based on Euclidean distances are not justified. Instead, we define a \emph{geodesic distance}. Construct a graph whose vertices are the pixels and undirected edge for adjacent pixels ($(x,y)$ is an edge if $y$ is in the 1-pixel neighborhood of $x$). Each edge has a weight $w(i,j) = \left| b_i - b_j \right|$ where $b_k$ is the boundary Radon-like response at pixel $k$. We define $d(\+{x}_i, \+{x}_j)$ to be the total weight of the shortest path between pixels $i$ and $j$, which is computed with Johnson's algorithm. In practice, the $O(N^2)$ storage is prohibitive, so we instead we downsample the image into SLIC superpixels \cite{Achanta2012} and compute superpixel-based distances.Address practical concerns. Further, because individual cells are tiny relative to an entire slice, only local distances are needed, because far points must be outside the current cell. All paths crossing a cell boundary must traverse pixels with low, high, and again low boundary feature responses. Thus, the shortest path wil also be one with a high weight. So if pixels $i$ and $j$ do not belong to the same cell, defined by the region enclosed by a loop of pixels with high boundary feature response, then $d(\+{x}_i, \+{x}_j)$ is high.
+Figure~\ref{fig:radon_bd} illustrates that cells need not be elliptical, or even convex. All that can be said is that they are contained in a closed loop that is generally gives a distinct Radon-like boundary response. Therefore, shape constraints based on Euclidean distances are not justified. Instead, we want to encode the a priori belief that "the cell body should not spill outside its membrane." We quantify this property with a \emph{geodesic distance}. Construct a graph whose vertices are the pixels and undirected edge for adjacent pixels ($(x,y)$ is an edge if $y$ is in the 1-pixel neighborhood of $x$). Each edge has a weight $w(i,j) = \left| b_i - b_j \right|$ where $b_k$ is the boundary Radon-like response at pixel $k$. We define $d(\+{x}_i, \+{x}_j)$ to be the total weight of the shortest path between pixels $i$ and $j$, which is computed with Johnson's algorithm. In practice, the $O(N^2)$ storage is prohibitive, so we instead we downsample the image into SLIC superpixels \cite{Achanta2012} and compute superpixel-based distances.Address practical concerns. Further, because individual cells are tiny relative to an entire slice, only local distances are needed, because far points must be outside the current cell. All paths crossing a cell boundary must traverse pixels with low, high, and again low boundary feature responses. Thus, the shortest path wil also be one with a high weight. So if pixels $i$ and $j$ do not belong to the same cell, defined by the region enclosed by a loop of pixels with high boundary feature response, then $d(\+{x}_i, \+{x}_j)$ is high.
 
 Recall that the cluster mean contains entries for the $xy$-coordinates $\+{\mu}_{k,1:2} = (\mu_{k,x}, \mu_{k,y})$. Fix a point $n$ and a cluster $k$. Then $d(\+{x}_n, \+{\mu}_{k,1:2})$ is exponentially distributed, favoring distances close to zero. Any point one the opposite side of a boundary from the cluster's center will be far away from zero, and hence have low probability. Geodesic distances to other points are ignored.
 
-We model a two-dimensional image as an infinite semi-Gaussian mixture model. This extends the classic Gaussian mixture model (GMM) with (a) a variable number of classes and (b) additional naive-Bayes features associated with each class.
-
-
-\begin{enumerate}
-\item $\phi_{1\cdot} \in [0,1]$: pixel intensity 
-\item $\phi_{2\cdot} \in [0,1]$: average interior Radon-like feature response
-\item $\phi_{3\cdot} \in [0,1]$: geodesic distance  
-\item 
-\end{enumerate}
- Because cell interiors contain diverse structures, intensities values within a cell vary widely, so relying on $\phi_{1\cdot}$ alone oversegments. To reduce oversegmentation, we compute a cel boundary Radon-like feature for $\phi_{1\cdot}$, which homogenizes pixel intensities within a given cell~\cite{Kumar2010}. One computes Radon-like functions by taking line integrals of a kernel function along various scanning orientations, broken piecewise at image discontinuities. By varying the kernel, different structures and boundaries are enhanced. We follow Kumar's approach of averaging the integrals along each scan orientation to obtain a scalar response at each pixel. Finally, recall that our background class ($k = 1$) contains all pixels belonging on the cell membrane or in intracellular space. We penalize points
-
-%, the cell Background Radon-like feature response in $\phi_{2\cdot}$, and the length of the shortest cluster path from $(
+\section{Inference}
+Our model encodes spatial locality in two novel ways: in the Gaussian covariance which bias class membership to Euclidean-close points, and in the geodesic distances which penalizes boundary crossings.
 
 \section{Results}
+Forthcoming.
 
 \section{Discussion}
 
