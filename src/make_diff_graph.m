@@ -9,7 +9,7 @@ function [ segments, slic_inds, edge_G ] = make_diff_graph( img, slic_npixels, s
 % edge_G   - sparse [Nslic Nslic] lower triangular graph. Two superpixels
 %            are adjacent if there exist two adjacent underlying pixels.
 
-    [X, Y] = size(img);
+    [R, C] = size(img);
     
     % vl_slic returns 0-indexed; we want 1-indexed.
     segments = vl_slic(single(img), slic_npixels, slic_reg) + 1;
@@ -43,7 +43,7 @@ function [ segments, slic_inds, edge_G ] = make_diff_graph( img, slic_npixels, s
             % Explore the neighborhood
             for dr = [-1 1]
                 for dc = [-1 1]
-                    if (r + dr > 1 && r + dr < Y) && (c + dc > 1 && c + dc < X)
+                    if (r + dr > 1 && r + dr < R) && (c + dc > 1 && c + dc < C)
                         other_n = segments(r + dr, c + dc);                    
 
                         % CHECK THIS LINE... earlier you asserted other_n >
