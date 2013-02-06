@@ -18,6 +18,7 @@ src/*.mat
 
 # Latex
 latex/*.pdf
+latex/*.lox
 *log
 *aux
 *out
