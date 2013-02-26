@@ -25,7 +25,7 @@ hist(straight <= thresh, 100);
 title(['Black dot feature responses <= ' num2str(thresh)]);
 
 % Find the top 1% of points
-q90 = quantile(straight, .9);
+q95 = quantile(straight, .95);
 
 indWhite = find(DOTS > q90);
 [xW yW zW] = ind2sub([100 100 100], indWhite);
