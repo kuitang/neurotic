@@ -177,17 +177,32 @@ classdef NormalWishart < matlab.mixin.Copyable & OnlineDistribution
             p = fast_mvtpdf_scalar(x, o.pred_mvtparams);
         end
         
+        function [mu C] = sample_prior(o, n)
+            % mu is cluster mean, C is cluster COVARIANCE (not precision)
+            
+            % MATLAB uses upper triangular Cholesky (opposite of most
+            % books)
+            prior_cov = o.prior_chol' * o.prior_chol;
+            C  = iwishrnd(prior_cov, o.prior_dof);
+            mu = mvnrnd(o.prior_mean, C / o.prior_n);
+        end
+        
+        function [mu C] = sample_post(o, n)
+            % mu is cluster mean, C is cluster COVARIANCE (not precision)
+            post_cov = o.post_chol' * o.post_chol;
+            C  = iwishrnd(post_cov, o.post_dof);
+            mu = mvnrnd(o.post_mean, C / o.post_n);
+        end
+        
         function [X] = sample_prior_pred(o, n)
 % X = sample_prior(n) samples one mean and cov and n iid datapoints
-            C  = iwishrnd(o.prior_cov, o.prior_dof);
-            mu = mvnrnd(o.prior_mean, C);
+            [C, mu] = o.sample_prior(n);            
             X  = mvnrnd(mu, C, n);
         end
         
         function [X] = sample_posterior_pred(o, n)
 % X = sample_posterior(n) samples one mean and cov and n iid datapoints
-            C  = iwishrnd(o.post_cov, o.post_dof);
-            mu = mvnrnd(o.post_mean, C);
+            [C, mu] = o.sample_post(n);          
             X  = mvnrnd(mu, C, n);
         end
     end

@@ -73,6 +73,11 @@ classdef GammaGamma < OnlineDistribution
             xs = gamrnd(o.shape, 1 / rate, n, 1);
         end
         
+        function xs = sample_posterior(o, n)
+            rate = gamrnd(o.post_shape, 1 / o.post_rate);
+            xs = gamrnd(o.post_shape, 1 / rate, n, 1);
+        end
+        
         function p = pred_like_scalar(o, X)            
             % Dubey (1.1)
             if X == 0 % avoid log(0)

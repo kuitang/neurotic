@@ -92,7 +92,8 @@ classdef ProductDistribution < matlab.mixin.Copyable & OnlineDistribution
             for i = 1:o.N
                 p = p * o.pdfs{i}.pred_like_scalar(x(o.idxranges{i}));
             end
-        end        
+        end
+        
     end
     
 end
